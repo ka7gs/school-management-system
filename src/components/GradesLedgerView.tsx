@@ -50,11 +50,11 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
 
   // Master State for Multi-Subject Student Grades
   const [studentGradesList, setStudentGradesList] = useState<StudentMultiSubjectGrade[]>(() => {
-    return INITIAL_STUDENT_MULTI_GRADES;
+    return [];
   });
 
   // Track active selected student for deep focus / editing / printing
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("st-7");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
 
   // Modal for Single Student Result Certificate Print
   const [printSingleStudent, setPrintSingleStudent] = useState<StudentMultiSubjectGrade | null>(null);

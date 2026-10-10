@@ -77,20 +77,9 @@ export function subscribeToStudents(
   const studentsCol = collection(db, 'schools', MAIN_SCHOOL_ID, 'students');
   return onSnapshot(
     studentsCol,
-    async (snap) => {
+    (snap) => {
       if (snap.empty) {
-        // Seed default students if empty
-        const batch = writeBatch(db);
-        INITIAL_STUDENTS.forEach((st) => {
-          const ref = doc(db, 'schools', MAIN_SCHOOL_ID, 'students', st.id);
-          batch.set(ref, st);
-        });
-        try {
-          await batch.commit();
-        } catch (e) {
-          console.warn('Initial student batch seeding notice:', e);
-        }
-        onData(INITIAL_STUDENTS);
+        onData([]);
         return;
       }
       const list: StudentRecord[] = [];
@@ -132,19 +121,9 @@ export function subscribeToGrades(
   const gradesCol = collection(db, 'schools', MAIN_SCHOOL_ID, 'grades');
   return onSnapshot(
     gradesCol,
-    async (snap) => {
+    (snap) => {
       if (snap.empty) {
-        const batch = writeBatch(db);
-        INITIAL_GRADES.forEach((g) => {
-          const ref = doc(db, 'schools', MAIN_SCHOOL_ID, 'grades', String(g.id));
-          batch.set(ref, g);
-        });
-        try {
-          await batch.commit();
-        } catch (e) {
-          console.warn('Grades seeding notice:', e);
-        }
-        onData(INITIAL_GRADES);
+        onData([]);
         return;
       }
       const list: GradeRecord[] = [];
@@ -186,19 +165,9 @@ export function subscribeToStaff(
   const staffCol = collection(db, 'schools', MAIN_SCHOOL_ID, 'staff');
   return onSnapshot(
     staffCol,
-    async (snap) => {
+    (snap) => {
       if (snap.empty) {
-        const batch = writeBatch(db);
-        INITIAL_STAFF_MEMBERS.forEach((m) => {
-          const ref = doc(db, 'schools', MAIN_SCHOOL_ID, 'staff', m.id);
-          batch.set(ref, m);
-        });
-        try {
-          await batch.commit();
-        } catch (e) {
-          console.warn('Staff seeding notice:', e);
-        }
-        onData(INITIAL_STAFF_MEMBERS);
+        onData([]);
         return;
       }
       const list: StaffMember[] = [];
@@ -294,19 +263,9 @@ export function subscribeToNotifications(
   const notifCol = collection(db, 'schools', MAIN_SCHOOL_ID, 'notifications');
   return onSnapshot(
     notifCol,
-    async (snap) => {
+    (snap) => {
       if (snap.empty) {
-        const batch = writeBatch(db);
-        INITIAL_SYSTEM_NOTIFICATIONS.forEach((n) => {
-          const ref = doc(db, 'schools', MAIN_SCHOOL_ID, 'notifications', n.id);
-          batch.set(ref, n);
-        });
-        try {
-          await batch.commit();
-        } catch (e) {
-          console.warn('Notifications seeding notice:', e);
-        }
-        onData(INITIAL_SYSTEM_NOTIFICATIONS);
+        onData([]);
         return;
       }
       const list: SystemNotification[] = [];

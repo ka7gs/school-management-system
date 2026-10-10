@@ -851,7 +851,24 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-high/40 font-table-data text-table-data">
-              {filteredStudents.map((student) => (
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-16 text-center text-on-surface-variant">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-[48px] text-outline">
+                        person_search
+                      </span>
+                      <span className="font-bold text-base text-primary">
+                        لا يوجد طلبة مسجلين حالياً في السجل
+                      </span>
+                      <span className="text-xs text-on-surface-variant max-w-md">
+                        يمكنك البدء بإضافة طالب جديد بالنقر على زر «تسجيل طالب جديد» أو استيراد ملف Excel.
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((student) => (
                 <tr
                   key={student.id}
                   className="hover:bg-surface-container-low transition-colors group"
@@ -1065,7 +1082,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

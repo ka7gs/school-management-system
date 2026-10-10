@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { INITIAL_MOVEMENTS, RecentMovementRecord, SchoolConfig } from "../data/mockData";
+import { RecentMovementRecord, SchoolConfig, StudentRecord } from "../data/mockData";
 
 interface DashboardViewProps {
   onNavigate: (path: string, openModal?: boolean) => void;
@@ -7,6 +7,7 @@ interface DashboardViewProps {
   totalStudentsCount: number;
   schoolConfig?: SchoolConfig;
   onOpenSettings?: () => void;
+  students?: StudentRecord[];
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -15,24 +16,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   totalStudentsCount,
   schoolConfig,
   onOpenSettings,
+  students = [],
 }) => {
-  const [tasks, setTasks] = useState([
-    {
-      id: "t1",
-      text: "توقيع أمر النقل للطالب علي حيدر إلى مدرسة الموهوبين",
-      done: true,
-    },
-    {
-      id: "t2",
-      text: "اعتماد جداول المراقبة للامتحانات الشهرية الأولى",
-      done: false,
-    },
-    {
-      id: "t3",
-      text: "إرسال تقرير الغيابات الموحد إلى شعبة الإشراف التربوي",
-      done: false,
-    },
-  ]);
+  const [tasks, setTasks] = useState<{ id: string; text: string; done: boolean }[]>([]);
 
   const [movementFilter, setMovementFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -44,7 +30,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     );
   };
 
-  const filteredMovements = INITIAL_MOVEMENTS.filter((m) => {
+  const studentMovements: RecentMovementRecord[] = students.map((st) => ({
+    ministryId: st.ministryId,
+    name: st.fullName,
+    gradeSection: `${st.gradeCode} - الشعبة (${st.sectionCode.toUpperCase()})`,
+    date: st.registrationDate || "2024/10/01",
+    schoolNote: st.notes || "مسجل في السجل الرسمي",
+    statusLabel: st.statusLabel,
+    statusStyle: (st.statusType === "transferred" ? "transferred" : st.statusType === "deferred" ? "carryover" : "active") as "active" | "transferred" | "carryover",
+  }));
+
+  const filteredMovements = studentMovements.filter((m) => {
     if (movementFilter === "all") return true;
     return m.statusStyle === movementFilter;
   });
@@ -175,15 +171,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-space-md pt-space-sm bg-surface-container-low px-space-sm py-1.5 rounded flex items-center justify-between text-on-surface-variant">
             <span className="font-body-sm text-body-sm">
-              علمي: <strong className="text-primary">720</strong>
+              علمي: <strong className="text-primary">{students.filter(s => s.gradeCode?.includes('s')).length}</strong>
             </span>
             <span className="text-outline">•</span>
             <span className="font-body-sm text-body-sm">
-              أدبي: <strong className="text-primary">528</strong>
+              أدبي: <strong className="text-primary">{students.filter(s => s.gradeCode?.includes('l')).length}</strong>
             </span>
             <span className="text-outline">•</span>
             <span className="font-label-sm text-label-sm text-secondary font-bold">
-              24 شعبة
+              {totalStudentsCount > 0 ? `${Math.ceil(totalStudentsCount / 30)} شعبة` : "0 شعبة"}
             </span>
           </div>
         </div>
@@ -199,7 +195,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 الملاك التدريسي والإداري
               </span>
               <div className="font-headline-xl text-headline-xl text-primary mt-1 font-bold tabular-nums">
-                68{" "}
+                0{" "}
                 <span className="font-headline-sm text-headline-sm text-on-surface-variant font-normal">
                   تدريسي وموظف
                 </span>
@@ -213,11 +209,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="mt-space-md pt-space-sm bg-surface-container-low px-space-sm py-1.5 rounded flex items-center justify-between">
             <span className="font-body-sm text-body-sm text-on-surface-variant">
-              إشغال الحصص:
+              حالة الكادر:
             </span>
-            <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>{" "}
-              100% مكتمل
+            <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-bold flex items-center gap-1">
+              بانتظار تسجيل الكادر
             </span>
           </div>
         </div>
@@ -233,9 +228,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 غيابات اليوم المعتمدة
               </span>
               <div className="font-headline-xl text-headline-xl text-primary mt-1 font-bold tabular-nums">
-                14{" "}
+                0{" "}
                 <span className="font-headline-sm text-headline-sm text-on-surface-variant font-normal">
-                  طالب فقط
+                  طالب
                 </span>
               </div>
             </div>
@@ -250,7 +245,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               نسبة الحضور اليومية:
             </span>
             <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-[#E8F5E9] text-[#1B5E20] font-bold">
-              98.9% (مؤشر ممتاز)
+              لا توجد غيابات مسجلة
             </span>
           </div>
         </div>
@@ -266,7 +261,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 الرسوم والأمانات المستحقة
               </span>
               <div className="font-headline-xl text-headline-xl text-primary mt-1 font-bold tabular-nums">
-                4,350,000{" "}
+                0{" "}
                 <span className="font-headline-sm text-headline-sm text-on-surface-variant font-normal">
                   د.ع
                 </span>
@@ -281,12 +276,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="mt-space-md flex flex-col gap-1">
             <div className="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
               <span>نسبة التحصيل الفصلي</span>
-              <span className="font-bold text-primary">82%</span>
+              <span className="font-bold text-primary">0%</span>
             </div>
             <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
               <div
                 className="bg-secondary h-full rounded-full"
-                style={{ width: "82%" }}
+                style={{ width: "0%" }}
               ></div>
             </div>
           </div>
@@ -1035,7 +1030,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container font-table-data text-table-data">
-              {filteredMovements.map((student) => (
+              {filteredMovements.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-space-lg text-center text-on-surface-variant py-8 font-medium">
+                    لا توجد سجلات حركة طلبة مسجلة حالياً
+                  </td>
+                </tr>
+              ) : (
+                filteredMovements.map((student) => (
                 <tr
                   key={student.ministryId}
                   className="hover:bg-surface-container-low transition-colors"
@@ -1103,7 +1105,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

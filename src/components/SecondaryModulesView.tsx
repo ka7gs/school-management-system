@@ -44,171 +44,29 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
     "all" | "present" | "excused" | "absent"
   >("all");
 
-  const [attendanceList, setAttendanceList] = useState([
-    {
-      id: "att-1",
-      ministryId: "IQ-2024-51001",
-      adminId: "ADM-24-101",
-      name: "علي حسين كريم الدليمي",
-      grade: "الخامس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "5s",
-      status: "present",
-      absenceDaysCount: 0,
-      note: "حاضر - مشاركة متميزة بالدرس",
-    },
-    {
-      id: "att-2",
-      ministryId: "IQ-2024-51002",
-      adminId: "ADM-24-102",
-      name: "محمد باقر جاسم الربيعي",
-      grade: "الخامس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "5s",
-      status: "present",
-      absenceDaysCount: 1,
-      note: "حاضر من بداية الحصة",
-    },
-    {
-      id: "att-3",
-      ministryId: "IQ-2024-51003",
-      adminId: "ADM-24-103",
-      name: "سجاد حيدر عبد الأمير الجبوري",
-      grade: "الخامس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "5s",
-      status: "excused",
-      absenceDaysCount: 2,
-      note: "إجازة مرضية مصدقة وموثقة",
-    },
-    {
-      id: "att-4",
-      ministryId: "IQ-2024-51004",
-      adminId: "ADM-24-104",
-      name: "كرار عمار فاضل الزيدي",
-      grade: "الخامس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "5s",
-      status: "present",
-      absenceDaysCount: 0,
-      note: "حاضر ملتزم",
-    },
-    {
-      id: "att-5",
-      ministryId: "IQ-2024-51005",
-      adminId: "ADM-24-105",
-      name: "زيد رافد محمود السامرائي",
-      grade: "الخامس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "5s",
-      status: "absent",
-      absenceDaysCount: 5,
-      note: "تجاوز حد الغياب المسموح - تم إشعار ولي الأمر",
-    },
-    {
-      id: "att-6",
-      ministryId: "IQ-2024-8841",
-      adminId: "ADM-2024-1001",
-      name: "علي حيدر كاظم الخفاجي",
-      grade: "السادس العلمي (أ)",
-      stage: "preparatory",
-      gradeCode: "6s",
-      status: "present",
-      absenceDaysCount: 0,
-      note: "حاضر",
-    },
-    {
-      id: "att-7",
-      ministryId: "IQ-2024-8842",
-      adminId: "ADM-2024-1002",
-      name: "مصطفى عمار فاضل الزيدي",
-      grade: "السادس العلمي (ب)",
-      stage: "preparatory",
-      gradeCode: "6s",
-      status: "present",
-      absenceDaysCount: 1,
-      note: "حاضر",
-    },
-    {
-      id: "att-8",
-      ministryId: "IQ-2024-6210",
-      adminId: "ADM-2024-2011",
-      name: "الحسن علي محمود الكبيسي",
-      grade: "الثالث المتوسط (أ)",
-      stage: "intermediate",
-      gradeCode: "m3",
-      status: "absent",
-      absenceDaysCount: 4,
-      note: "غياب متكرر بدون عذر رسمي",
-    },
-    {
-      id: "att-9",
-      ministryId: "IQ-2024-3104",
-      adminId: "ADM-2024-3005",
-      name: "أمير ياسر قحطان العبيدي",
-      grade: "السادس الابتدائي (أ)",
-      stage: "primary",
-      gradeCode: "p6",
-      status: "present",
-      absenceDaysCount: 0,
-      note: "تلميذ ملتزم بالحضور اليومي",
-    },
-    {
-      id: "att-10",
-      ministryId: "IQ-2024-3190",
-      adminId: "ADM-2024-3006",
-      name: "عباس فلاح حسن الشمري",
-      grade: "الأول الابتدائي (أ)",
-      stage: "primary",
-      gradeCode: "p1",
-      status: "present",
-      absenceDaysCount: 0,
-      note: "حاضر",
-    },
-  ]);
+  const [attendanceList, setAttendanceList] = useState<Array<{
+    id: string;
+    ministryId: string;
+    adminId: string;
+    name: string;
+    grade: string;
+    stage: string;
+    gradeCode: string;
+    status: string;
+    absenceDaysCount: number;
+    note: string;
+  }>>([]);
 
-  const [receipts, setReceipts] = useState([
-    {
-      receiptNo: "FIN-2024-9041",
-      studentName: "علي حيدر كاظم الخفاجي",
-      adminId: "ADM-2024-1001",
-      stageGrade: "السادس العلمي (أ)",
-      category: "مساهمة صندوق المدرسة والكتب",
-      amount: "50,000 د.ع",
-      date: "2024/10/14",
-      status: "مسدد بالكامل",
-    },
-    {
-      receiptNo: "FIN-2024-9042",
-      studentName: "مصطفى عمار فاضل الزيدي",
-      adminId: "ADM-2024-1002",
-      stageGrade: "السادس العلمي (ب)",
-      category: "رسوم البطاقة والزي المدرسي",
-      amount: "75,000 د.ع",
-      date: "2024/10/14",
-      status: "مسدد بالكامل",
-    },
-    {
-      receiptNo: "FIN-2024-9043",
-      studentName: "أمير ياسر قحطان العبيدي",
-      adminId: "ADM-2024-3005",
-      stageGrade: "السادس الابتدائي (أ)",
-      category: "رسوم الأنشطة اللاصفية",
-      amount: "25,000 د.ع",
-      date: "2024/10/15",
-      status: "مسدد بالكامل",
-    },
-    {
-      receiptNo: "FIN-2024-9044",
-      studentName: "الحسن علي محمود الكبيسي",
-      adminId: "ADM-2024-2011",
-      stageGrade: "الثالث المتوسط (أ)",
-      category: "قسط الفصل الدراسي الأول",
-      amount: "150,000 د.ع",
-      date: "2024/10/15",
-      status: "قسط جزئي",
-    },
-  ]);
+  const [receipts, setReceipts] = useState<Array<{
+    receiptNo: string;
+    studentName: string;
+    adminId: string;
+    stageGrade: string;
+    category: string;
+    amount: string;
+    date: string;
+    status: string;
+  }>>([]);
 
   const [newReceiptStudent, setNewReceiptStudent] = useState("");
   const [newReceiptAmount, setNewReceiptAmount] = useState("50,000");
@@ -1168,7 +1026,14 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container font-table-data text-table-data">
-                {receipts.map((rec) => (
+                {receipts.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center text-on-surface-variant font-medium">
+                      لا توجد وصولات قبض أو قيود مالية مسجلة حالياً
+                    </td>
+                  </tr>
+                ) : (
+                  receipts.map((rec) => (
                   <tr
                     key={rec.receiptNo}
                     className="hover:bg-surface-container-low"
@@ -1216,7 +1081,7 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
                       </button>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

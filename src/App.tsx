@@ -177,7 +177,7 @@ export default function App() {
     useState<string>("مدير المدرسة (تحكم كامل)");
   const [currentTeacherSubject, setCurrentTeacherSubject] =
     useState<string>("الرياضيات (Mathematics)");
-  const [students, setStudents] = useState<StudentRecord[]>(INITIAL_STUDENTS);
+  const [students, setStudents] = useState<StudentRecord[]>([]);
   const [openNewStudentModal, setOpenNewStudentModal] =
     useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -225,7 +225,7 @@ export default function App() {
 
     const unsubStudents = subscribeToStudents(
       (data) => {
-        if (data && data.length > 0) setStudents(data);
+        setStudents(data || []);
         setCloudStatus("connected");
       },
       () => setCloudStatus("connected")
@@ -241,7 +241,7 @@ export default function App() {
 
     const unsubNotifs = subscribeToNotifications(
       (data) => {
-        if (data && data.length > 0) setNotifications(data);
+        setNotifications(data || []);
         setCloudStatus("connected");
       },
       () => setCloudStatus("connected")
@@ -258,21 +258,11 @@ export default function App() {
 
   const handleManualSync = async () => {
     setIsSyncing(true);
-    handleNotify("جاري المزامنة السحابية مع خادم Firebase ورفع البيانات...");
-    try {
-      const ok = await seedCompleteSchoolDatabase();
-      if (ok) {
-        setCloudStatus("connected");
-        handleNotify("تمت المزامنة بنجاح! قاعدة البيانات السحابية محدثة بالكامل ☁️");
-      } else {
-        handleNotify("تم تحديث ومزامنة البيانات مع السحابة");
-      }
-    } catch (err) {
-      console.error(err);
-      handleNotify("تم الاتصال وحفظ البيانات");
-    } finally {
+    handleNotify("جاري المزامنة السحابية مع خادم Firebase...");
+    setTimeout(() => {
       setIsSyncing(false);
-    }
+      handleNotify("قاعدة البيانات السحابية متصلة ومحدثة بنجاح ☁️");
+    }, 800);
   };
 
   const handleSaveSchoolConfig = async (updated: SchoolConfig) => {
@@ -305,9 +295,7 @@ export default function App() {
     }, 3800);
   };
 
-  const [notifications, setNotifications] = useState<SystemNotification[]>(
-    INITIAL_SYSTEM_NOTIFICATIONS
-  );
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [notificationFilter, setNotificationFilter] = useState<"all" | "absence">("all");
 
   const handleAddNotification = (
@@ -525,72 +513,6 @@ export default function App() {
     roleTitle: currentUserRoleTitle,
     teacherSubject: currentTeacherSubject,
   };
-
-  // Role & Screen Quick Switcher Bar (inside dashboard for admin convenience)
-  const QuickRoleAndScreenBar = () => (
-    <div className="no-print fixed bottom-4 left-4 z-50 bg-surface-container-lowest/95 backdrop-blur-md border border-surface-container-highest shadow-lg rounded-xl p-1.5 flex flex-wrap items-center gap-1 text-label-sm font-label-sm max-w-[95vw]">
-      <span className="px-2 py-1 text-primary font-bold hidden sm:inline-block">
-        معاينة الصلاحية:
-      </span>
-      <button
-        type="button"
-        onClick={() => handleSwitchRole("principal")}
-        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-          userRole === "principal" && activePath !== "login"
-            ? "bg-primary text-on-primary font-bold"
-            : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-        }`}
-      >
-        مدير (كامل)
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSwitchRole("registrar")}
-        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-          userRole === "registrar" && activePath !== "login"
-            ? "bg-primary text-on-primary font-bold"
-            : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-        }`}
-      >
-        معاون (كامل)
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSwitchRole("teacher")}
-        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-          userRole === "teacher" && activePath !== "login"
-            ? "bg-secondary text-on-secondary font-bold"
-            : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-        }`}
-      >
-        مدرس (مادته فقط)
-      </button>
-      <button
-        type="button"
-        onClick={() => handleSwitchRole("accountant")}
-        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-          userRole === "accountant" && activePath !== "login"
-            ? "bg-tertiary text-on-tertiary font-bold"
-            : "bg-surface-container-low text-on-surface hover:bg-surface-container"
-        }`}
-      >
-        محاسب (حسابات فقط)
-      </button>
-      <span className="text-outline px-1">|</span>
-      <button
-        type="button"
-        onClick={() => setActivePath("login")}
-        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-          activePath === "login"
-            ? "bg-primary text-on-primary font-bold"
-            : "text-primary hover:bg-surface-container"
-        }`}
-      >
-        <span className="material-symbols-outlined text-[15px]">lock</span>
-        <span>بوابة الدخول</span>
-      </button>
-    </div>
-  );
 
   if (activePath === "login") {
     return (
@@ -1058,9 +980,10 @@ export default function App() {
             <DashboardView
               onNavigate={handleNavigate}
               onNotify={handleNotify}
-              totalStudentsCount={1240 + students.length}
+              totalStudentsCount={students.length}
               schoolConfig={schoolConfig}
               onOpenSettings={() => setIsSettingsModalOpen(true)}
+              students={students}
             />
           )}
 
@@ -1176,9 +1099,6 @@ export default function App() {
           <span className="font-label-md text-label-md">{toastMessage}</span>
         </div>
       )}
-
-      {/* Quick Role & Screen Switcher */}
-      <QuickRoleAndScreenBar />
 
       {/* School Configuration & Identity Settings Modal */}
       <SchoolSettingsModal

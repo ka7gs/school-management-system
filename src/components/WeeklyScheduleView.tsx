@@ -37,10 +37,10 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
       try {
         return JSON.parse(saved);
       } catch {
-        return INITIAL_WEEKLY_SCHEDULES;
+        return [];
       }
     }
-    return INITIAL_WEEKLY_SCHEDULES;
+    return [];
   });
 
   const saveSchedules = (updated: ClassWeeklySchedule[]) => {

@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
-  INITIAL_STAFF_MEMBERS,
   SchoolConfig,
   StaffCategory,
   StaffMember,
   SUBJECTS_BY_STAGE,
 } from "../data/mockData";
+import { subscribeToStaff, saveStaffDb, deleteStaffDb } from "../firebase/firestoreService";
 
 interface StaffRegistryViewProps {
   onNotify: (msg: string) => void;
@@ -24,11 +24,18 @@ export const StaffRegistryView: React.FC<StaffRegistryViewProps> = ({
       try {
         return JSON.parse(saved);
       } catch {
-        return INITIAL_STAFF_MEMBERS;
+        return [];
       }
     }
-    return INITIAL_STAFF_MEMBERS;
+    return [];
   });
+
+  useEffect(() => {
+    const unsub = subscribeToStaff((data) => {
+      setStaffList(data || []);
+    });
+    return () => unsub();
+  }, []);
 
   const saveStaffList = (updated: StaffMember[]) => {
     setStaffList(updated);
