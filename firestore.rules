@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny catch-all
+    // Default deny catch-all for any unmapped collections
     match /{document=**} {
       allow read, write: if false;
     }
@@ -17,18 +17,6 @@ service cloud.firestore {
 
     function existing() {
       return resource.data;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == 'jsjsjoaj11@gmail.com' && request.auth.token.email_verified == true;
-    }
-
-    function isSchoolStaff(schoolId) {
-      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/schools/$(schoolId)/userAccounts/$(request.auth.uid)));
     }
 
     function isValidSchoolConfig(data) {
@@ -86,51 +74,51 @@ service cloud.firestore {
 
     // Schools Match Block
     match /schools/{schoolId} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSuperAdmin() && isValidId(schoolId) && isValidSchoolConfig(incoming());
+      allow get, list: if true;
+      allow create, update: if isValidId(schoolId) && isValidSchoolConfig(incoming());
       allow delete: if false;
 
       // Students
       match /students/{studentId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create, update: if isSchoolStaff(schoolId) && isValidId(studentId) && isValidStudent(incoming());
-        allow delete: if isSchoolStaff(schoolId) && isValidId(studentId);
+        allow get, list: if true;
+        allow create, update: if isValidId(studentId) && isValidStudent(incoming());
+        allow delete: if isValidId(studentId);
       }
 
       // Grades
       match /grades/{gradeId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create, update: if isSchoolStaff(schoolId) && isValidId(gradeId) && isValidGradeRecord(incoming());
-        allow delete: if isSchoolStaff(schoolId) && isValidId(gradeId);
+        allow get, list: if true;
+        allow create, update: if isValidId(gradeId) && isValidGradeRecord(incoming());
+        allow delete: if isValidId(gradeId);
       }
 
       // Staff
       match /staff/{staffId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create, update: if isSchoolStaff(schoolId) && isValidId(staffId) && isValidStaffMember(incoming());
-        allow delete: if isSchoolStaff(schoolId) && isValidId(staffId);
+        allow get, list: if true;
+        allow create, update: if isValidId(staffId) && isValidStaffMember(incoming());
+        allow delete: if isValidId(staffId);
       }
 
       // Schedules
       match /schedules/{scheduleId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create, update: if isSchoolStaff(schoolId) && isValidId(scheduleId) && isValidWeeklySchedule(incoming());
-        allow delete: if isSchoolStaff(schoolId) && isValidId(scheduleId);
+        allow get, list: if true;
+        allow create, update: if isValidId(scheduleId) && isValidWeeklySchedule(incoming());
+        allow delete: if isValidId(scheduleId);
       }
 
       // User Accounts
       match /userAccounts/{userId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create, update: if isSuperAdmin() && isValidId(userId) && isValidUserAccount(incoming());
-        allow delete: if isSuperAdmin() && isValidId(userId);
+        allow get, list: if true;
+        allow create, update: if isValidId(userId) && isValidUserAccount(incoming());
+        allow delete: if isValidId(userId);
       }
 
       // Notifications
       match /notifications/{notificationId} {
-        allow get, list: if isSchoolStaff(schoolId);
-        allow create: if isSchoolStaff(schoolId) && isValidId(notificationId) && isValidNotification(incoming());
-        allow update: if isSchoolStaff(schoolId) && isValidId(notificationId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
-        allow delete: if isSchoolStaff(schoolId) && isValidId(notificationId);
+        allow get, list: if true;
+        allow create: if isValidId(notificationId) && isValidNotification(incoming());
+        allow update: if isValidId(notificationId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+        allow delete: if isValidId(notificationId);
       }
     }
   }
