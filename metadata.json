@@ -1,0 +1,6 @@
+{
+  "name": "نظام الإدارة المدرسية الموحد - وزارة التربية العراقية",
+  "description": "المنصة الإلكترونية الموحدة لإدارة المدارس العراقية - سجل شؤون الطلبة، رصد الدرجات الفصلي، ولوحة التحكم الإدارية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

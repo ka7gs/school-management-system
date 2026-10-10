@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@theme {
+  --color-secondary-fixed: #a1f0f0;
+  --color-tertiary-container: #cea72c;
+  --color-on-surface-variant: #43474e;
+  --color-surface-container-highest: #d9e3f4;
+  --color-primary-fixed-dim: #aec8f4;
+  --color-on-primary-fixed-variant: #2d476d;
+  --color-on-secondary-fixed-variant: #004f50;
+  --color-tertiary-fixed-dim: #ecc246;
+  --color-surface-container: #e5efff;
+  --color-on-tertiary-fixed: #241a00;
+  --color-surface-bright: #f8f9ff;
+  --color-surface: #f8f9ff;
+  --color-primary-fixed: #d5e3ff;
+  --color-surface-container-low: #eef4ff;
+  --color-surface-tint: #465f86;
+  --color-outline: #74777f;
+  --color-tertiary-fixed: #ffe08e;
+  --color-inverse-primary: #aec8f4;
+  --color-tertiary: #755b00;
+  --color-on-background: #121c28;
+  --color-on-tertiary: #ffffff;
+  --color-on-primary-fixed: #001c3b;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-fixed: #002020;
+  --color-error-container: #ffdad6;
+  --color-primary-container: #1f3a5f;
+  --color-on-primary-container: #8ba4cf;
+  --color-on-error: #ffffff;
+  --color-on-primary: #ffffff;
+  --color-primary: #032448;
+  --color-secondary: #026a6a;
+  --color-secondary-fixed-dim: #85d4d3;
+  --color-secondary-container: #9eeded;
+  --color-on-secondary-container: #0e6e6e;
+  --color-surface-container-high: #dfe9fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-tertiary-fixed-variant: #584400;
+  --color-error: #ba1a1a;
+  --color-background: #f8f9ff;
+  --color-inverse-surface: #27313e;
+  --color-on-surface: #121c28;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary-container: #4f3d00;
+  --color-surface-variant: #d9e3f4;
+  --color-outline-variant: #c4c6cf;
+  --color-inverse-on-surface: #eaf1ff;
+  --color-surface-dim: #d1dbeb;
+
+  --spacing-margin-md: 1.5rem;
+  --spacing-margin-lg: 2rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-margin: 1rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-xl: 2rem;
+  --spacing-gutter-lg: 1.5rem;
+  --spacing-gutter: 1rem;
+
+  --font-Cairo: "Cairo", sans-serif;
+  --font-body-sm: "Cairo", sans-serif;
+  --font-headline-xl: "Cairo", sans-serif;
+  --font-label-md: "Cairo", sans-serif;
+  --font-headline-sm: "Cairo", sans-serif;
+  --font-body-md: "Cairo", sans-serif;
+  --font-table-data: "Cairo", sans-serif;
+  --font-headline-md: "Cairo", sans-serif;
+  --font-headline-lg: "Cairo", sans-serif;
+  --font-table-header: "Cairo", sans-serif;
+  --font-label-sm: "Cairo", sans-serif;
+  --font-headline-xl-mobile: "Cairo", sans-serif;
+  --font-body-lg: "Cairo", sans-serif;
+}
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Cairo", sans-serif;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+}
+
+.text-body-sm {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+}
+.text-headline-xl {
+  font-size: 30px;
+  line-height: 44px;
+  font-weight: 700;
+}
+.text-label-md {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+.text-headline-sm {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.text-body-md {
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 400;
+}
+.text-table-data {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.text-headline-md {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+.text-headline-lg {
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: 700;
+}
+.text-table-header {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+.text-label-sm {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+.text-headline-xl-mobile {
+  font-size: 24px;
+  line-height: 36px;
+  font-weight: 700;
+}
+.text-body-lg {
+  font-size: 15px;
+  line-height: 26px;
+  font-weight: 400;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+}
+
+.material-fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+@media print {
+  aside, header, footer, .no-print {
+    display: none !important;
+  }
+  .pr-72 {
+    padding-right: 0 !important;
+  }
+  main {
+    padding-top: 0 !important;
+  }
+}
+
