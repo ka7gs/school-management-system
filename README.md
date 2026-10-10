@@ -57,7 +57,7 @@
 
 ```bash
 # 1. استنساخ المستودع (Clone the repo)
-git clone <YOUR-GITHUB-REPO-URL>
+git clone https://github.com/ka7gs/school-management-system.git
 cd school-management-system
 
 # 2. تثبيت الحزم (Install dependencies)
