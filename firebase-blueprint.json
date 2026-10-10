@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "SchoolConfig": {
+      "title": "School Configuration",
+      "description": "General settings and identity information for the school",
+      "type": "object",
+      "properties": {
+        "schoolName": { "type": "string", "maxLength": 150 },
+        "schoolLogoUrl": { "type": "string", "maxLength": 1000 },
+        "directorate": { "type": "string", "maxLength": 200 },
+        "ministryLogoUrl": { "type": "string", "maxLength": 1000 },
+        "governorate": { "type": "string", "maxLength": 100 },
+        "principalName": { "type": "string", "maxLength": 150 },
+        "vicePrincipalName": { "type": "string", "maxLength": 150 },
+        "examCommitteeHead": { "type": "string", "maxLength": 150 },
+        "academicYear": { "type": "string", "maxLength": 50 },
+        "schoolCode": { "type": "string", "maxLength": 50 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 300 },
+        "updatedAt": { "type": "string" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["schoolName", "directorate", "academicYear"]
+    },
+    "Student": {
+      "title": "Student Record",
+      "description": "Student registration and personal file",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "seq": { "type": "string", "maxLength": 20 },
+        "avatar": { "type": "string", "maxLength": 1000 },
+        "avatarAlt": { "type": "string", "maxLength": 300 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "birthInfo": { "type": "string", "maxLength": 150 },
+        "ministryId": { "type": "string", "maxLength": 50 },
+        "adminId": { "type": "string", "maxLength": 50 },
+        "nationalId": { "type": "string", "maxLength": 50 },
+        "gradeSection": { "type": "string", "maxLength": 80 },
+        "stageCode": { "type": "string", "enum": ["primary", "intermediate", "preparatory"] },
+        "gradeCode": { "type": "string", "maxLength": 20 },
+        "sectionCode": { "type": "string", "maxLength": 20 },
+        "guardianName": { "type": "string", "maxLength": 150 },
+        "guardianPhone": { "type": "string", "maxLength": 50 },
+        "statusLabel": { "type": "string", "maxLength": 50 },
+        "statusType": { "type": "string", "enum": ["active", "transferred", "deferred", "withdrawn", "dismissed"] },
+        "registrationDate": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["id", "fullName", "ministryId", "adminId", "stageCode", "gradeCode"]
+    },
+    "GradeRecord": {
+      "title": "Grade Record",
+      "description": "Subject score entry and assessment record for a student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "ministryId": { "type": "string", "maxLength": 50 },
+        "adminId": { "type": "string", "maxLength": 50 },
+        "studentName": { "type": "string", "maxLength": 150 },
+        "month1": { "type": "number" },
+        "month2": { "type": "number" },
+        "midterm": { "type": "number" },
+        "course2Month1": { "type": "number" },
+        "course2Month2": { "type": "number" },
+        "finalExam": { "type": "number" },
+        "note": { "type": "string", "maxLength": 300 },
+        "stage": { "type": "string", "enum": ["primary", "intermediate", "preparatory"] },
+        "gradeCode": { "type": "string", "maxLength": 20 },
+        "gradeClass": { "type": "string", "maxLength": 80 },
+        "section": { "type": "string", "maxLength": 50 },
+        "subject": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["ministryId", "studentName", "stage", "gradeCode", "subject"]
+    },
+    "StaffMember": {
+      "title": "Staff Member",
+      "description": "Teacher, administrator, or employee profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "employeeCode": { "type": "string", "maxLength": 50 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "roleTitle": { "type": "string", "maxLength": 100 },
+        "qualification": { "type": "string", "maxLength": 100 },
+        "yearsOfService": { "type": "number" },
+        "phoneNumber": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 50 },
+        "joinedYear": { "type": "string", "maxLength": 20 }
+      },
+      "required": ["id", "fullName", "employeeCode", "roleTitle"]
+    },
+    "WeeklySchedule": {
+      "title": "Weekly Class Schedule",
+      "description": "Class schedule for a specific classroom",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string", "maxLength": 64 },
+        "classroom": { "type": "string", "maxLength": 100 },
+        "stage": { "type": "string", "enum": ["primary", "intermediate", "preparatory"] },
+        "gradeCode": { "type": "string", "maxLength": 20 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["classId", "classroom", "stage", "gradeCode"]
+    },
+    "UserAccount": {
+      "title": "User Account",
+      "description": "Authorized user profile and system role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "username": { "type": "string", "maxLength": 80 },
+        "email": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["principal", "registrar", "teacher", "accountant"] },
+        "roleTitle": { "type": "string", "maxLength": 100 },
+        "teacherSubject": { "type": "string", "maxLength": 100 },
+        "phoneNumber": { "type": "string", "maxLength": 50 },
+        "employeeId": { "type": "string", "maxLength": 50 },
+        "directorate": { "type": "string", "maxLength": 150 },
+        "schoolName": { "type": "string", "maxLength": 150 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "fullName", "role"]
+    },
+    "SystemNotification": {
+      "title": "System Notification",
+      "description": "Notice or alert regarding school events and student attendance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "isRead": { "type": "boolean" },
+        "severity": { "type": "string", "enum": ["info", "warning", "success", "error"] }
+      },
+      "required": ["id", "title", "message"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": "SchoolConfig",
+      "description": "School profile and general configurations"
+    },
+    "/schools/{schoolId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Official students directory and profiles"
+    },
+    "/schools/{schoolId}/grades/{gradeId}": {
+      "schema": "GradeRecord",
+      "description": "Academic assessments and official grades"
+    },
+    "/schools/{schoolId}/staff/{staffId}": {
+      "schema": "StaffMember",
+      "description": "Academic and administrative staff registry"
+    },
+    "/schools/{schoolId}/schedules/{scheduleId}": {
+      "schema": "WeeklySchedule",
+      "description": "Timetable and weekly schedules"
+    },
+    "/schools/{schoolId}/userAccounts/{userId}": {
+      "schema": "UserAccount",
+      "description": "Staff authentication profiles and permissions"
+    },
+    "/schools/{schoolId}/notifications/{notificationId}": {
+      "schema": "SystemNotification",
+      "description": "School administrative notifications and attendance alerts"
+    }
+  }
+}

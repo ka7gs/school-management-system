@@ -1,0 +1,137 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'jsjsjoaj11@gmail.com' && request.auth.token.email_verified == true;
+    }
+
+    function isSchoolStaff(schoolId) {
+      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/schools/$(schoolId)/userAccounts/$(request.auth.uid)));
+    }
+
+    function isValidSchoolConfig(data) {
+      return data.schoolName is string && data.schoolName.size() <= 150 &&
+             data.directorate is string && data.directorate.size() <= 200 &&
+             data.academicYear is string && data.academicYear.size() <= 50;
+    }
+
+    function isValidStudent(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.fullName is string && data.fullName.size() <= 150 &&
+             data.ministryId is string && data.ministryId.size() <= 50 &&
+             data.adminId is string && data.adminId.size() <= 50 &&
+             data.stageCode in ['primary', 'intermediate', 'preparatory'] &&
+             data.gradeCode is string && data.gradeCode.size() <= 20;
+    }
+
+    function isValidGradeRecord(data) {
+      return data.studentName is string && data.studentName.size() <= 150 &&
+             data.ministryId is string && data.ministryId.size() <= 50 &&
+             data.stage in ['primary', 'intermediate', 'preparatory'] &&
+             data.gradeCode is string && data.gradeCode.size() <= 20 &&
+             data.subject is string && data.subject.size() <= 100 &&
+             data.month1 is number && data.month1 >= 0 && data.month1 <= 100 &&
+             data.month2 is number && data.month2 >= 0 && data.month2 <= 100 &&
+             data.midterm is number && data.midterm >= 0 && data.midterm <= 100 &&
+             data.finalExam is number && data.finalExam >= 0 && data.finalExam <= 100;
+    }
+
+    function isValidStaffMember(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.fullName is string && data.fullName.size() <= 150 &&
+             data.employeeCode is string && data.employeeCode.size() <= 50 &&
+             data.roleTitle is string && data.roleTitle.size() <= 100;
+    }
+
+    function isValidWeeklySchedule(data) {
+      return data.classId is string && data.classId.size() <= 64 &&
+             data.classroom is string && data.classroom.size() <= 100 &&
+             data.stage in ['primary', 'intermediate', 'preparatory'] &&
+             data.gradeCode is string && data.gradeCode.size() <= 20;
+    }
+
+    function isValidUserAccount(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.fullName is string && data.fullName.size() <= 150 &&
+             data.role in ['principal', 'registrar', 'teacher', 'accountant'];
+    }
+
+    function isValidNotification(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.title is string && data.title.size() <= 150 &&
+             data.message is string && data.message.size() <= 500;
+    }
+
+    // Schools Match Block
+    match /schools/{schoolId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isSuperAdmin() && isValidId(schoolId) && isValidSchoolConfig(incoming());
+      allow delete: if false;
+
+      // Students
+      match /students/{studentId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create, update: if isSchoolStaff(schoolId) && isValidId(studentId) && isValidStudent(incoming());
+        allow delete: if isSchoolStaff(schoolId) && isValidId(studentId);
+      }
+
+      // Grades
+      match /grades/{gradeId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create, update: if isSchoolStaff(schoolId) && isValidId(gradeId) && isValidGradeRecord(incoming());
+        allow delete: if isSchoolStaff(schoolId) && isValidId(gradeId);
+      }
+
+      // Staff
+      match /staff/{staffId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create, update: if isSchoolStaff(schoolId) && isValidId(staffId) && isValidStaffMember(incoming());
+        allow delete: if isSchoolStaff(schoolId) && isValidId(staffId);
+      }
+
+      // Schedules
+      match /schedules/{scheduleId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create, update: if isSchoolStaff(schoolId) && isValidId(scheduleId) && isValidWeeklySchedule(incoming());
+        allow delete: if isSchoolStaff(schoolId) && isValidId(scheduleId);
+      }
+
+      // User Accounts
+      match /userAccounts/{userId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create, update: if isSuperAdmin() && isValidId(userId) && isValidUserAccount(incoming());
+        allow delete: if isSuperAdmin() && isValidId(userId);
+      }
+
+      // Notifications
+      match /notifications/{notificationId} {
+        allow get, list: if isSchoolStaff(schoolId);
+        allow create: if isSchoolStaff(schoolId) && isValidId(notificationId) && isValidNotification(incoming());
+        allow update: if isSchoolStaff(schoolId) && isValidId(notificationId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+        allow delete: if isSchoolStaff(schoolId) && isValidId(notificationId);
+      }
+    }
+  }
+}

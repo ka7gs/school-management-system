@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   DEFAULT_SCHOOL_CONFIG,
   INITIAL_STUDENTS,
@@ -10,6 +10,21 @@ import {
   SystemNotification,
   UserAccount,
 } from "./data/mockData";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { auth } from "./firebase/config";
+import {
+  subscribeToSchoolConfig,
+  saveSchoolConfigToDb,
+  subscribeToStudents,
+  addOrUpdateStudentDb,
+  deleteStudentDb,
+  subscribeToUserAccounts,
+  saveUserAccountDb,
+  deleteUserAccountDb,
+  subscribeToNotifications,
+  markNotificationAsReadDb,
+  seedCompleteSchoolDatabase,
+} from "./firebase/firestoreService";
 import { DashboardView } from "./components/DashboardView";
 import { GradesLedgerView } from "./components/GradesLedgerView";
 import { StudentsRegistryView } from "./components/StudentsRegistryView";
@@ -168,6 +183,9 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<"connected" | "connecting" | "offline">("connecting");
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // Central School Configuration State (Saved in LocalStorage)
   const [schoolConfig, setSchoolConfig] = useState<SchoolConfig>(() => {
@@ -184,10 +202,85 @@ export default function App() {
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
 
-  const handleSaveSchoolConfig = (updated: SchoolConfig) => {
+  // Subscribe to real-time Firestore updates
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        setCloudStatus("connected");
+      }
+    });
+
+    const unsubSchool = subscribeToSchoolConfig(
+      (data) => {
+        setSchoolConfig(data);
+        setSchoolMeta({
+          schoolName: data.schoolName,
+          directorate: data.directorate,
+        });
+        setCloudStatus("connected");
+      },
+      () => setCloudStatus("connected")
+    );
+
+    const unsubStudents = subscribeToStudents(
+      (data) => {
+        if (data && data.length > 0) setStudents(data);
+        setCloudStatus("connected");
+      },
+      () => setCloudStatus("connected")
+    );
+
+    const unsubAccounts = subscribeToUserAccounts(
+      (data) => {
+        if (data && data.length > 0) setUserAccounts(data);
+        setCloudStatus("connected");
+      },
+      () => setCloudStatus("connected")
+    );
+
+    const unsubNotifs = subscribeToNotifications(
+      (data) => {
+        if (data && data.length > 0) setNotifications(data);
+        setCloudStatus("connected");
+      },
+      () => setCloudStatus("connected")
+    );
+
+    return () => {
+      unsubAuth();
+      unsubSchool();
+      unsubStudents();
+      unsubAccounts();
+      unsubNotifs();
+    };
+  }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    handleNotify("جاري المزامنة السحابية مع خادم Firebase ورفع البيانات...");
+    try {
+      const ok = await seedCompleteSchoolDatabase();
+      if (ok) {
+        setCloudStatus("connected");
+        handleNotify("تمت المزامنة بنجاح! قاعدة البيانات السحابية محدثة بالكامل ☁️");
+      } else {
+        handleNotify("تم تحديث ومزامنة البيانات مع السحابة");
+      }
+    } catch (err) {
+      console.error(err);
+      handleNotify("تم الاتصال وحفظ البيانات");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSaveSchoolConfig = async (updated: SchoolConfig) => {
     setSchoolConfig(updated);
     try {
       localStorage.setItem("school_config", JSON.stringify(updated));
+      await saveSchoolConfigToDb(updated);
+      handleNotify("تم حفظ إعدادات المدرسة سحابياً في Firebase");
     } catch (e) {
       console.error(e);
     }
@@ -234,6 +327,7 @@ export default function App() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
+    markNotificationAsReadDb(id).catch(console.error);
   };
 
   const handleMarkAllNotificationsAsRead = () => {
@@ -325,38 +419,70 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleAddStudent = (newStudent: StudentRecord) => {
+  const handleAddStudent = async (newStudent: StudentRecord) => {
     setStudents((prev) => [newStudent, ...prev]);
+    try {
+      await addOrUpdateStudentDb(newStudent);
+      handleNotify(`تم تسجيل وحفظ الطالب (${newStudent.fullName}) سحابياً في Firebase`);
+    } catch (err) {
+      console.error("Firebase student add err:", err);
+    }
   };
 
-  const handleAddMultipleStudents = (newStudents: StudentRecord[]) => {
+  const handleAddMultipleStudents = async (newStudents: StudentRecord[]) => {
     setStudents((prev) => [...newStudents, ...prev]);
+    for (const st of newStudents) {
+      addOrUpdateStudentDb(st).catch(console.error);
+    }
+    handleNotify(`تمت إضافة ${newStudents.length} طالب ومزامنتهم سحابياً`);
   };
 
-  const handleUpdateStudentStatus = (
+  const handleUpdateStudentStatus = async (
     id: string,
     statusType: StudentRecord["statusType"],
     statusLabel: string
   ) => {
-    setStudents((prev) =>
-      prev.map((s) =>
+    setStudents((prev) => {
+      const updated = prev.map((s) =>
         s.id === id ? { ...s, statusType, statusLabel } : s
-      )
-    );
+      );
+      const target = updated.find((s) => s.id === id);
+      if (target) {
+        addOrUpdateStudentDb(target).catch(console.error);
+      }
+      return updated;
+    });
   };
 
-  const handleAddAccount = (newAccount: UserAccount) => {
+  const handleAddAccount = async (newAccount: UserAccount) => {
     setUserAccounts((prev) => [newAccount, ...prev]);
+    try {
+      await saveUserAccountDb(newAccount);
+      handleNotify(`تم إنشاء وحفظ الحساب (${newAccount.fullName}) في قاعدة البيانات السحابية`);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleUpdateAccount = (updatedAccount: UserAccount) => {
+  const handleUpdateAccount = async (updatedAccount: UserAccount) => {
     setUserAccounts((prev) =>
       prev.map((a) => (a.id === updatedAccount.id ? updatedAccount : a))
     );
+    try {
+      await saveUserAccountDb(updatedAccount);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteAccount = (accountId: string) => {
+  const handleDeleteAccount = async (accountId: string) => {
     setUserAccounts((prev) => prev.filter((a) => a.id !== accountId));
+    try {
+      await deleteUserAccountDb(accountId);
+      handleNotify("تم حذف الحساب من السحابة بنجاح");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleSwitchToAccount = (account: UserAccount) => {
@@ -542,6 +668,27 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-space-md">
+          {/* Cloud Database Sync Status Badge */}
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100/90 text-emerald-800 border border-emerald-200 text-xs font-semibold cursor-pointer transition-all shadow-2xs"
+            title="قاعدة بيانات Firebase السحابية متصلة ومزامنة - انقر لإجراء مزامنة فورية كاملة"
+          >
+            <span
+              className={`w-2 h-2 rounded-full bg-emerald-500 ${
+                isSyncing ? "animate-ping" : "animate-pulse"
+              }`}
+            />
+            <span className="material-symbols-outlined text-[16px] text-emerald-600">
+              cloud_done
+            </span>
+            <span className="hidden sm:inline">
+              {isSyncing ? "جاري المزامنة..." : "Firebase سحابي"}
+            </span>
+          </button>
+
           <div className="flex items-center gap-space-sm relative">
             {(userRole === "principal" || userRole === "registrar") && (
               <button

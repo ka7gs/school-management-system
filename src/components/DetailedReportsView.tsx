@@ -33,9 +33,27 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
   const studentGrades = useMemo(() => {
     return INITIAL_STUDENT_MULTI_GRADES.map((rec) => {
       const summary = computeStudentSummary(rec);
+      let gradeLetter = "مقبول";
+      if (summary.average >= 90) gradeLetter = "امتياز";
+      else if (summary.average >= 80) gradeLetter = "جيد جداً";
+      else if (summary.average >= 70) gradeLetter = "جيد";
+      else if (summary.average >= 60) gradeLetter = "متوسط";
+      else if (summary.average < 50) gradeLetter = "راسب";
+
+      const overallStatus =
+        summary.failedCount === 0
+          ? "ناجح"
+          : summary.failedCount <= 2
+          ? "مكمل"
+          : "راسب";
+
       return {
         ...rec,
-        summary,
+        summary: {
+          ...summary,
+          overallStatus,
+          gradeLetter,
+        },
       };
     });
   }, []);
