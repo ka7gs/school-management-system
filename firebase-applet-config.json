@@ -1,12 +1,12 @@
 {
-  "projectId": "peerless-vertex-1r5vm",
-  "appId": "1:159737114326:web:d330312569da51aa582377",
-  "apiKey": "AIzaSyBFLjvbPeYTR28Uc_m_FCrXGuRQ98xNtLg",
-  "authDomain": "peerless-vertex-1r5vm.firebaseapp.com",
+  "projectId": "school-management-system-63721",
+  "appId": "1:1041446776963:web:531ebd7d5dcd67949f6bb6",
+  "apiKey": "AIzaSyCr3kvYOOAgaZrqyp2kyw03kaA2flL56uc",
+  "authDomain": "school-management-system-63721.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-899f2b93-0cbc-4879-972b-3da80a2b2ea5",
-  "storageBucket": "peerless-vertex-1r5vm.firebasestorage.app",
-  "messagingSenderId": "159737114326",
+  "storageBucket": "school-management-system-63721.firebasestorage.app",
+  "messagingSenderId": "1041446776963",
   "measurementId": "",
-  "oAuthClientId": "159737114326-g85hut2a96t0gt8niha0ar0qcp8fhfjn.apps.googleusercontent.com",
+  "oAuthClientId": "1041446776963-bftdn8n9g69m9cl5aj90tk0qkvfg6a6t.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
