@@ -17,6 +17,7 @@ interface StudentsRegistryViewProps {
     statusType: StudentRecord["statusType"],
     statusLabel: string
   ) => void;
+  onDeleteStudent?: (id: string) => void;
   openModalInitially?: boolean;
   onModalHandled?: () => void;
   onNotify: (msg: string) => void;
@@ -52,6 +53,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
   onAddStudent,
   onAddMultipleStudents,
   onUpdateStudentStatus,
+  onDeleteStudent,
   openModalInitially = false,
   onModalHandled,
   onNotify,
@@ -199,18 +201,29 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
       ? "ب"
       : newSection.includes("(ج)")
       ? "ج"
+      : newSection.includes("(د)")
+      ? "د"
       : "أ";
     const sectionCodeVal =
-      sectionLetter === "ب" ? "b" : sectionLetter === "ج" ? "c" : "a";
+      sectionLetter === "ب"
+        ? "b"
+        : sectionLetter === "ج"
+        ? "c"
+        : sectionLetter === "د"
+        ? "d"
+        : "a";
     const gradeObj = STAGE_GRADES[newStage].find(
       (g) => g.code === newGradeCode
-    );
-    const gradeLabel = gradeObj ? gradeObj.label : "السادس العلمي";
+    ) || STAGE_GRADES[newStage][0];
+    const gradeLabel = gradeObj ? gradeObj.label : "الصف الأول الابتدائي";
+
+    const defaultStudentAvatar =
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80";
 
     const newRecord: StudentRecord = {
       id: `st-${Date.now()}`,
       seq: seqStr,
-      avatar: students[0].avatar,
+      avatar: (students && students.length > 0 && students[0]?.avatar && students[0]?.avatar !== "") ? students[0].avatar : defaultStudentAvatar,
       avatarAlt: "صورة الطالب الرسمية",
       fullName: newFullName.trim(),
       birthInfo: `تولد: ${newBirthDate.replace(/-/g, "/")} - بغداد/الكرخ`,
@@ -219,7 +232,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
       nationalId: newNationalId.trim() || "19049918273",
       gradeSection: `${gradeLabel} (${sectionLetter})`,
       stageCode: newStage,
-      gradeCode: newGradeCode,
+      gradeCode: gradeObj?.code || newGradeCode,
       sectionCode: sectionCodeVal,
       guardianName: newGuardianName.trim() || "ولي الأمر المعتمد",
       guardianPhone: newGuardianPhone.trim() || "+964 771 000 1122",
@@ -459,10 +472,13 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
       const seqNum = baseCount + i + 1;
       const seqStr = seqNum < 10 ? `0${seqNum}` : `${seqNum}`;
       const randomMinistry = Math.floor(4000 + Math.random() * 5900);
+      const defaultStudentAvatar =
+        "https://lh3.googleusercontent.com/aida-public/AB6AXuDHqdYtc2K2BXKuwq5KbL3Bfoq9K_-5HuNOiLPNZc0vkrjVSiDSDTtfgVt82uYcG5R8EzudmJdjJ9z6LlK5nyk0M8qbiFvxpdk2gAmMp851YYoO5oolmDW6vj-qrErbqpoVw8Zjd9Jc73ZepRBWlQoQJSZeBGmMkRoaLQlPP2H5VOEkX8Ocl67xAtc-Kz6DCFu3Wuv1Qs4oysgDGfiPlaWCgsMogXMfb5idIGvYVq3s4KUZL-UbDsQS";
+
       return {
         id: `st-imp-${Date.now()}-${i}`,
         seq: seqStr,
-        avatar: students[i % students.length].avatar,
+        avatar: (students && students.length > 0 && students[i % students.length]?.avatar) || defaultStudentAvatar,
         avatarAlt: "صورة الطالب الرسمية",
         fullName: r.fullName,
         birthInfo: r.birthInfo,
@@ -578,7 +594,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               مجموع الطلبة المسجلين
             </span>
             <span className="font-headline-xl text-headline-xl text-primary font-bold tabular-nums">
-              {(1240 + students.length).toLocaleString("en-US")}
+              {students.length.toLocaleString("en-US")}
             </span>
             <span className="font-body-sm text-body-sm text-secondary flex items-center gap-1">
               <span className="material-symbols-outlined text-[16px]">
@@ -600,10 +616,17 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               الطلبة المستمرون بالدوام
             </span>
             <span className="font-headline-xl text-headline-xl text-primary font-bold tabular-nums">
-              1,186
+              {students.filter((s) => s.statusType === "active").length.toLocaleString("en-US")}
             </span>
             <span className="font-body-sm text-body-sm text-on-surface-variant">
-              نسبة الالتزام: 95.03%
+              نسبة الالتزام:{" "}
+              {students.length > 0
+                ? `${Math.round(
+                    (students.filter((s) => s.statusType === "active").length /
+                      students.length) *
+                      100
+                  )}%`
+                : "0%"}
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-on-secondary-container">
@@ -619,13 +642,13 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               طلبات النقل والتسوية
             </span>
             <span className="font-headline-xl text-headline-xl text-primary font-bold tabular-nums">
-              42
+              {students.filter((s) => s.statusType === "transferred").length.toLocaleString("en-US")}
             </span>
             <span className="font-body-sm text-body-sm text-tertiary flex items-center gap-1">
               <span className="material-symbols-outlined text-[16px]">
                 sync_alt
               </span>
-              28 وارد • 14 صادر
+              {students.filter((s) => s.statusType === "transferred").length} طالب منقول
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
@@ -641,10 +664,22 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               عدد الصفوف والشعب الدراسية
             </span>
             <span className="font-headline-xl text-headline-xl text-primary font-bold tabular-nums">
-              15
+              {new Set(students.map((s) => `${s.gradeCode}-${s.sectionCode}`)).size}
             </span>
             <span className="font-body-sm text-body-sm text-outline flex items-center gap-1">
-              <span>متوسط الصف: 31 طالب</span>
+              <span>
+                {students.length > 0
+                  ? `متوسط الشعبة: ${Math.round(
+                      students.length /
+                        Math.max(
+                          1,
+                          new Set(
+                            students.map((s) => `${s.gradeCode}-${s.sectionCode}`)
+                          ).size
+                        )
+                    )} طالب`
+                  : "0 طالب"}
+              </span>
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
@@ -854,7 +889,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
               {filteredStudents.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-16 text-center text-on-surface-variant">
-                    <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="flex flex-col items-center justify-center gap-3">
                       <span className="material-symbols-outlined text-[48px] text-outline">
                         person_search
                       </span>
@@ -864,6 +899,14 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
                       <span className="text-xs text-on-surface-variant max-w-md">
                         يمكنك البدء بإضافة طالب جديد بالنقر على زر «تسجيل طالب جديد» أو استيراد ملف Excel.
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-bold text-xs shadow hover:bg-primary-container cursor-pointer transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">person_add</span>
+                        <span>تسجيل طالب جديد الآن +</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1079,6 +1122,23 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
                           </button>
                         </>
                       )}
+
+                      {onDeleteStudent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`هل أنت متأكد من حذف قيد الطالب (${student.fullName}) نهائياً من السجل الوزاري؟`)) {
+                              onDeleteStudent(student.id);
+                            }
+                          }}
+                          title="حذف قيد الطالب نهائياً"
+                          className="p-1 rounded text-error hover:bg-error/10 transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            delete
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1102,7 +1162,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
             </select>
             <span>
               (عرض 1 إلى {filteredStudents.length} من أصل{" "}
-              {(1240 + students.length).toLocaleString("en-US")} طالباً في السجل
+              {students.length.toLocaleString("en-US")} طالباً في السجل
               المركزي)
             </span>
           </div>
@@ -1727,7 +1787,7 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
                 </div>
               </div>
             </div>
-            <div className="bg-surface-container-low px-space-lg py-space-sm flex justify-between items-center">
+            <div className="bg-surface-container-low px-space-lg py-space-sm flex justify-between items-center gap-space-sm">
               <button
                 type="button"
                 onClick={() => {
@@ -1741,13 +1801,32 @@ export const StudentsRegistryView: React.FC<StudentsRegistryViewProps> = ({
                 </span>
                 <span>طباعة البطاقة المدرسية</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setSelectedDossier(null)}
-                className="px-space-md py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm cursor-pointer"
-              >
-                إغلاق
-              </button>
+              <div className="flex items-center gap-2">
+                {onDeleteStudent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`هل أنت متأكد من حذف قيد الطالب (${selectedDossier.fullName}) نهائياً من السجل المدرسي وقاعدة البيانات السحابية؟`)) {
+                        const name = selectedDossier.fullName;
+                        onDeleteStudent(selectedDossier.id);
+                        setSelectedDossier(null);
+                        onNotify(`تم حذف قيد الطالب (${name}) بنجاح`);
+                      }
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-error/10 hover:bg-error hover:text-white text-error font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    <span>حذف قيد الطالب</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedDossier(null)}
+                  className="px-space-md py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm cursor-pointer"
+                >
+                  إغلاق
+                </button>
+              </div>
             </div>
           </div>
         </div>

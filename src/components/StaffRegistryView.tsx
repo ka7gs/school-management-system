@@ -112,41 +112,42 @@ export const StaffRegistryView: React.FC<StaffRegistryViewProps> = ({
     }
 
     if (editingStaff) {
-      const updated = staffList.map((m) =>
-        m.id === editingStaff.id ? { ...formData, id: editingStaff.id } : m
-      );
-      saveStaffList(updated);
-      onNotify(`تم تحديث بيانات (${formData.fullName}) بنجاح`);
+      const updated: StaffMember = {
+        ...formData,
+        id: editingStaff.id,
+      };
+      saveStaffDb(updated).catch(console.error);
+      setStaffList((prev) => prev.map((m) => (m.id === editingStaff.id ? updated : m)));
+      onNotify(`تم تحديث بيانات (${formData.fullName}) سحابياً`);
     } else {
       const newMember: StaffMember = {
         ...formData,
         id: `stf-${Date.now()}`,
       };
-      saveStaffList([newMember, ...staffList]);
-      onNotify(`تمت إضافة (${formData.fullName}) إلى سجل الكادر المدرسي`);
+      saveStaffDb(newMember).catch(console.error);
+      setStaffList((prev) => [newMember, ...prev]);
+      onNotify(`تمت إضافة (${formData.fullName}) وحفظه سحابياً في Firebase`);
     }
     setIsModalOpen(false);
   };
 
   const handleDeleteStaff = (id: string, name: string) => {
     if (window.confirm(`هل أنت متأكد من حذف (${name}) من سجل الكادر المدرسي؟`)) {
-      const updated = staffList.filter((m) => m.id !== id);
-      saveStaffList(updated);
-      onNotify(`تم حذف (${name}) من السجل`);
+      deleteStaffDb(id).catch(console.error);
+      setStaffList((prev) => prev.filter((m) => m.id !== id));
+      onNotify(`تم حذف (${name}) من السجل السحابي`);
     }
   };
 
   const handleToggleStatus = (id: string) => {
-    const updated = staffList.map((m) => {
-      if (m.id === id) {
-        const nextStatus: StaffMember["status"] =
-          m.status === "active" ? "on_leave" : m.status === "on_leave" ? "delegated" : "active";
-        return { ...m, status: nextStatus };
-      }
-      return m;
-    });
-    saveStaffList(updated);
-    onNotify("تم تحديث حالة دوام الموظف");
+    const target = staffList.find((m) => m.id === id);
+    if (!target) return;
+    const nextStatus: StaffMember["status"] =
+      target.status === "active" ? "on_leave" : target.status === "on_leave" ? "delegated" : "active";
+    const updatedMember: StaffMember = { ...target, status: nextStatus };
+    saveStaffDb(updatedMember).catch(console.error);
+    setStaffList((prev) => prev.map((m) => (m.id === id ? updatedMember : m)));
+    onNotify("تم تحديث حالة دوام الموظف سحابياً");
   };
 
   // Filtered List

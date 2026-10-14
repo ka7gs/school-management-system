@@ -38,18 +38,12 @@ service cloud.firestore {
       return data.studentName is string && data.studentName.size() <= 150 &&
              data.ministryId is string && data.ministryId.size() <= 50 &&
              data.stage in ['primary', 'intermediate', 'preparatory'] &&
-             data.gradeCode is string && data.gradeCode.size() <= 20 &&
-             data.subject is string && data.subject.size() <= 100 &&
-             data.month1 is number && data.month1 >= 0 && data.month1 <= 100 &&
-             data.month2 is number && data.month2 >= 0 && data.month2 <= 100 &&
-             data.midterm is number && data.midterm >= 0 && data.midterm <= 100 &&
-             data.finalExam is number && data.finalExam >= 0 && data.finalExam <= 100;
+             data.gradeCode is string && data.gradeCode.size() <= 20;
     }
 
     function isValidStaffMember(data) {
       return data.id is string && data.id.size() <= 64 &&
              data.fullName is string && data.fullName.size() <= 150 &&
-             data.employeeCode is string && data.employeeCode.size() <= 50 &&
              data.roleTitle is string && data.roleTitle.size() <= 100;
     }
 
@@ -92,6 +86,12 @@ service cloud.firestore {
         allow delete: if isValidId(gradeId);
       }
 
+      // Multi-Subject Student Grades
+      match /multiGrades/{recordId} {
+        allow get, list: if true;
+        allow create, update, delete: if isValidId(recordId);
+      }
+
       // Staff
       match /staff/{staffId} {
         allow get, list: if true;
@@ -117,8 +117,20 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         allow get, list: if true;
         allow create: if isValidId(notificationId) && isValidNotification(incoming());
-        allow update: if isValidId(notificationId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+        allow update: if isValidId(notificationId);
         allow delete: if isValidId(notificationId);
+      }
+
+      // Attendance
+      match /attendance/{attendanceId} {
+        allow get, list: if true;
+        allow create, update, delete: if isValidId(attendanceId);
+      }
+
+      // Finance & Tuition Receipts
+      match /financeReceipts/{receiptId} {
+        allow get, list: if true;
+        allow create, update, delete: if isValidId(receiptId);
       }
     }
   }

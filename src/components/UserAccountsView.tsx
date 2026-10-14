@@ -13,7 +13,6 @@ interface UserAccountsViewProps {
   onDeleteAccount: (accountId: string) => void;
   onNotify: (msg: string) => void;
   onNavigate: (path: string) => void;
-  onSwitchToAccount?: (account: UserAccount) => void;
 }
 
 export const UserAccountsView: React.FC<UserAccountsViewProps> = ({
@@ -23,7 +22,6 @@ export const UserAccountsView: React.FC<UserAccountsViewProps> = ({
   onDeleteAccount,
   onNotify,
   onNavigate,
-  onSwitchToAccount,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -534,16 +532,6 @@ export const UserAccountsView: React.FC<UserAccountsViewProps> = ({
 
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        {onSwitchToAccount && (
-                          <button
-                            type="button"
-                            onClick={() => onSwitchToAccount(acc)}
-                            className="p-1 rounded text-secondary hover:bg-secondary/10 cursor-pointer transition-colors"
-                            title="تسجيل الدخول ومعاينة النظام بصلاحية هذا الحساب"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">login</span>
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(acc)}

@@ -1,101 +1,41 @@
 import React, { useState } from "react";
 import {
-  INITIAL_USER_ACCOUNTS,
   MINISTRY_LOGO_URL,
   UserAccount,
   UserRole,
 } from "../data/mockData";
-import { auth, googleProvider, signInWithPopup } from "../firebase/config";
 
 export type { UserRole };
 
 interface LoginViewProps {
-  onLoginSuccess: (userInfo: {
-    role: UserRole;
-    roleTitle: string;
-    directorate: string;
-    schoolName: string;
-    username: string;
-    fullName: string;
-    teacherSubject?: string;
-  }) => void;
+  onLoginSuccess: (
+    userInfo: {
+      role: UserRole;
+      roleTitle: string;
+      directorate: string;
+      schoolName: string;
+      username: string;
+      fullName: string;
+      teacherSubject?: string;
+    },
+    rememberMe: boolean
+  ) => void;
   accounts?: UserAccount[];
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
-  accounts = INITIAL_USER_ACCOUNTS,
+  accounts = [],
 }) => {
-  const [identifier, setIdentifier] = useState<string>("principal");
-  const [password, setPassword] = useState<string>("123");
+  // Pure and secure: start empty, no prefilled test data
+  const [identifier, setIdentifier] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
-  const [showDemoAccounts, setShowDemoAccounts] = useState<boolean>(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
   const [status, setStatus] = useState<{
     type: "idle" | "error" | "verifying" | "success" | "info";
     message: string;
   }>({ type: "idle", message: "" });
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    setStatus({
-      type: "verifying",
-      message: "جاري الاتصال بـ Google والمصادقة مع قاعدة بيانات Firebase السحابية...",
-    });
-
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const email = user.email || "";
-
-      // Check if this matches registered user account or superadmin
-      const matched = accounts.find(
-        (a) => a.email.toLowerCase() === email.toLowerCase()
-      );
-
-      const role: UserRole = matched ? matched.role : "principal";
-      const roleTitle = matched
-        ? matched.roleTitle
-        : "مدير المدرسة (مشرف النظام الرئيسي - حساب المطور)";
-      const fullName = user.displayName || matched?.fullName || "المشرف العام";
-
-      setStatus({
-        type: "success",
-        message: `تم تسجيل الدخول السحابي بنجاح عبر حساب Google (${email})! مرحباً بك ${fullName}.`,
-      });
-
-      setTimeout(() => {
-        onLoginSuccess({
-          role,
-          roleTitle,
-          directorate: matched?.directorate || "بغداد / الكرخ الأولى",
-          schoolName: matched?.schoolName || "ثانوية المتميزين للبنين",
-          username: email,
-          fullName,
-          teacherSubject: matched?.teacherSubject,
-        });
-      }, 700);
-    } catch (err: unknown) {
-      console.error("Google sign in error:", err);
-      setStatus({
-        type: "error",
-        message:
-          "تعذر تسجيل الدخول عبر Google. يمكنك استخدام تسجيل الدخول بالاسم وكلمة المرور أدناه للمتابعة بسلاسة.",
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
-  const handleFillDemo = (acc: UserAccount) => {
-    setIdentifier(acc.username);
-    setPassword(acc.password);
-    setStatus({
-      type: "info",
-      message: `تمت تعبئة بيانات حساب (${acc.fullName} - ${acc.roleTitle}). اضغط "تسجيل الدخول" للمتابعة.`,
-    });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,18 +46,18 @@ export const LoginView: React.FC<LoginViewProps> = ({
     if (!cleanId || !cleanPass) {
       setStatus({
         type: "error",
-        message: "يرجى إدخال اسم المستخدم أو البريد الإلكتروني وكلمة المرور للمتابعة.",
+        message: "يرجى إدخال اسم المستخدم وكلمة المرور للمتابعة.",
       });
       return;
     }
 
     setStatus({
       type: "verifying",
-      message: "جاري التحقق من بيانات الدخول والصلاحيات في السجل الوزاري...",
+      message: "جاري التحقق من بيانات الدخول والاعتماد الإداري...",
     });
 
     setTimeout(() => {
-      // Find matching user account by username or email
+      // Find matching user account strictly by username or email
       const matched = accounts.find(
         (a) =>
           a.username.trim().toLowerCase() === cleanId ||
@@ -128,13 +68,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setStatus({
           type: "error",
           message:
-            "اسم المستخدم أو البريد الإلكتروني غير مسجل في النظام. تأكد من صحة البيانات أو راجع مسؤول الحسابات.",
+            "اسم المستخدم غير مسجل في النظام. تأكد من صحة البيانات أو راجع إدارة المدرسة.",
         });
         return;
       }
 
-      // Verify password (also allow standard fallback password 123 for test ease)
-      if (matched.password !== cleanPass && cleanPass !== "123") {
+      // Strict password match: NO test backdoors allowed
+      if (matched.password !== cleanPass) {
         setStatus({
           type: "error",
           message: "كلمة المرور غير صحيحة. يرجى التأكد وإعادة المحاولة.",
@@ -158,17 +98,20 @@ export const LoginView: React.FC<LoginViewProps> = ({
       });
 
       setTimeout(() => {
-        onLoginSuccess({
-          role: matched.role,
-          roleTitle: matched.roleTitle,
-          directorate: matched.directorate || "بغداد / الكرخ الأولى",
-          schoolName: matched.schoolName || "ثانوية المتميزين للبنين",
-          username: matched.username,
-          fullName: matched.fullName,
-          teacherSubject: matched.teacherSubject,
-        });
-      }, 550);
-    }, 600);
+        onLoginSuccess(
+          {
+            role: matched.role,
+            roleTitle: matched.roleTitle,
+            directorate: matched.directorate || "بغداد / الكرخ الأولى",
+            schoolName: matched.schoolName || "ثانوية المتميزين للبنين",
+            username: matched.username,
+            fullName: matched.fullName,
+            teacherSubject: matched.teacherSubject,
+          },
+          rememberMe
+        );
+      }, 500);
+    }, 450);
   };
 
   return (
@@ -213,7 +156,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
             </header>
 
-            {/* Clean Login Form: Only Username/Email & Password */}
+            {/* Restricted Login Form: Username/Email and Password ONLY */}
             <form className="space-y-space-md" onSubmit={handleSubmit}>
               {/* Field 1: Username or Email */}
               <div>
@@ -230,7 +173,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. teacher_math أو accountant أو principal"
+                    placeholder="e.g. principal"
                     required
                     autoComplete="username"
                     className="w-full h-11 bg-surface-container-lowest border border-surface-container-high text-on-surface rounded-lg px-3 pl-10 font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-colors text-left placeholder:text-outline"
@@ -340,48 +283,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </button>
               </div>
 
-              {/* Google Firebase Cloud Authentication Option */}
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-surface-container-high"></div>
-                <span className="flex-shrink mx-3 text-on-surface-variant font-label-sm text-label-sm">
-                  أو الدخول السحابي المباشر
-                </span>
-                <div className="flex-grow border-t border-surface-container-high"></div>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isGoogleLoading || status.type === "verifying"}
-                  className="w-full h-11 bg-surface-container-lowest hover:bg-surface-container text-on-surface border border-surface-container-high hover:border-primary/40 active:scale-[0.99] transition-all rounded-lg font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-2.5 shadow-xs hover:shadow-sm cursor-pointer disabled:opacity-75"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>
-                    {isGoogleLoading
-                      ? "جاري الاتصال السحابي بـ Google..."
-                      : "تسجيل الدخول السريع عبر Google (Firebase Cloud)"}
-                  </span>
-                </button>
-              </div>
-
               {/* Status Alert Banner */}
               {status.type !== "idle" && (
                 <div
@@ -398,69 +299,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
               )}
             </form>
 
-            {/* Quick Demo Accounts Helper (Expandable / Non-intrusive) */}
-            <div className="mt-space-md pt-space-sm border-t border-surface-container-high">
-              <button
-                type="button"
-                onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-                className="w-full flex items-center justify-between p-2 rounded-lg bg-surface-container-low hover:bg-surface-container text-xs text-on-surface-variant transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-1.5 font-bold text-primary">
-                  <span className="material-symbols-outlined text-[16px]">key</span>
-                  <span>حسابات الكادر المعتمدة للاختبار السريع (اضغط للتعبئة التلقائية)</span>
-                </div>
-                <span className="material-symbols-outlined text-[18px]">
-                  {showDemoAccounts ? "expand_less" : "expand_more"}
-                </span>
-              </button>
-
-              {showDemoAccounts && (
-                <div className="mt-2 p-2.5 rounded-lg bg-surface-container-low/70 border border-surface-container-high space-y-1.5 text-xs animate-in fade-in duration-150">
-                  <p className="text-[11px] text-on-surface-variant mb-2">
-                    انقر على أي حساب لتعبئة اسم المستخدم وكلمة المرور تلقائياً في النموذج أعلاه:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {accounts.slice(0, 6).map((acc) => (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => handleFillDemo(acc)}
-                        className="flex items-center justify-between p-2 rounded bg-surface-container-lowest hover:bg-primary/10 border border-surface-container-high text-right cursor-pointer transition-all"
-                      >
-                        <div>
-                          <div className="font-bold text-on-surface text-[11px]">
-                            {acc.fullName}
-                          </div>
-                          <div className="text-[10px] text-on-surface-variant font-mono">
-                            {acc.username}
-                          </div>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            acc.role === "principal"
-                              ? "bg-primary/10 text-primary"
-                              : acc.role === "teacher"
-                              ? "bg-secondary-container/50 text-secondary"
-                              : acc.role === "accountant"
-                              ? "bg-[#E8F5E9] text-[#1B5E20]"
-                              : "bg-surface-container text-on-surface-variant"
-                          }`}
-                        >
-                          {acc.role === "principal"
-                            ? "مدير"
-                            : acc.role === "registrar"
-                            ? "معاون"
-                            : acc.role === "teacher"
-                            ? "مدرس"
-                            : "محاسب"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Official Security Footer */}
             <div className="mt-space-md pt-space-sm border-t border-surface-container-high space-y-2 text-[11px] text-on-surface-variant">
               <div className="p-2.5 rounded-lg bg-surface-container text-right flex items-start gap-2">
@@ -468,9 +306,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   security
                 </span>
                 <p className="leading-relaxed">
-                  يفتح النظام الشاشات المخصصة لكل مستخدم تلقائياً حسب الصلاحية المعطاة له في قسم
-                  إدارة الحسابات (المدير: تحكم كامل • المدرس: درجات وحضور مادته فقط • المحاسب:
-                  الحسابات فقط).
+                  نظام محمي ومخصص لإدارة المدرسة والكادر المعتمد فقط. يتم الدخول حصراً بالاسم وكلمة المرور الخاصة بكل مستخدم وفق الصلاحيات المعينة له.
                 </p>
               </div>
               <div className="flex items-center justify-between px-1">

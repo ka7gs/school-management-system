@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   STAGE_GRADES,
   STAGE_LABELS,
@@ -7,6 +7,13 @@ import {
   SystemNotification,
 } from "../data/mockData";
 import { UserRole } from "./LoginView";
+import {
+  subscribeToFinanceReceipts,
+  saveFinanceReceiptDb,
+  subscribeToAttendance,
+  saveAttendanceItemDb,
+  AttendanceRecordItem,
+} from "../firebase/firestoreService";
 
 interface SecondaryModuleProps {
   moduleKey: string;
@@ -44,18 +51,24 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
     "all" | "present" | "excused" | "absent"
   >("all");
 
-  const [attendanceList, setAttendanceList] = useState<Array<{
-    id: string;
-    ministryId: string;
-    adminId: string;
-    name: string;
-    grade: string;
-    stage: string;
-    gradeCode: string;
-    status: string;
-    absenceDaysCount: number;
-    note: string;
-  }>>([]);
+  // Attendance Records synced with Firestore
+  const [attendanceRecords, setAttendanceRecords] = useState<Record<string, AttendanceRecordItem>>({});
+
+  useEffect(() => {
+    const unsub = subscribeToAttendance((data) => {
+      if (data) {
+        const map: Record<string, AttendanceRecordItem> = {};
+        data.forEach((r) => {
+          map[r.studentId || r.id] = r;
+          if (r.studentId) {
+            map[`att-${r.studentId}`] = r;
+          }
+        });
+        setAttendanceRecords(map);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const [receipts, setReceipts] = useState<Array<{
     receiptNo: string;
@@ -68,6 +81,26 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
     status: string;
   }>>([]);
 
+  useEffect(() => {
+    const unsub = subscribeToFinanceReceipts((data) => {
+      if (data && data.length > 0) {
+        setReceipts(
+          data.map((r) => ({
+            receiptNo: r.receiptNumber,
+            studentName: r.studentName,
+            adminId: r.notes || "ADM-2024",
+            stageGrade: r.gradeClass,
+            category: r.paymentType,
+            amount: `${r.amount.toLocaleString()} د.ع`,
+            date: r.date,
+            status: r.status,
+          }))
+        );
+      }
+    });
+    return () => unsub();
+  }, []);
+
   const [newReceiptStudent, setNewReceiptStudent] = useState("");
   const [newReceiptAmount, setNewReceiptAmount] = useState("50,000");
   const [newReceiptCategory, setNewReceiptCategory] = useState(
@@ -79,58 +112,106 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
     setGradeCode(STAGE_GRADES[nextStage][0]?.code || "");
   };
 
-  const toggleAttendance = (id: string | number, newStatus: string) => {
-    let triggeredStudent: any = null;
+  const toggleAttendance = async (studentId: string | number, newStatus: string) => {
+    const sId = String(studentId);
+    const targetStudent = students.find((s) => s.id === sId);
+    if (!targetStudent) return;
 
-    setAttendanceList((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const wasAbsent = item.status === "absent";
-          const isNowAbsent = newStatus === "absent";
-          let newAbsenceCount = item.absenceDaysCount || 0;
+    const currentRecord = attendanceRecords[sId] || attendanceRecords[`att-${sId}`];
+    const prevStatus = currentRecord?.status || "present";
+    let count = currentRecord?.absenceDaysCount || 0;
 
-          if (!wasAbsent && isNowAbsent) {
-            newAbsenceCount += 1;
-            if (newAbsenceCount >= absenceThreshold) {
-              triggeredStudent = {
-                ...item,
-                absenceDaysCount: newAbsenceCount,
-              };
-            }
-          } else if (wasAbsent && !isNowAbsent && newAbsenceCount > 0) {
-            newAbsenceCount -= 1;
-          }
+    const wasAbsent = prevStatus === "absent";
+    const isNowAbsent = newStatus === "absent";
 
-          return {
-            ...item,
-            status: newStatus,
-            absenceDaysCount: newAbsenceCount,
-          };
-        }
-        return item;
-      })
-    );
+    if (!wasAbsent && isNowAbsent) {
+      count += 1;
+    } else if (wasAbsent && !isNowAbsent && count > 0) {
+      count -= 1;
+    }
 
-    if (triggeredStudent && autoAlertEnabled && onAddNotification) {
+    const defaultNote =
+      newStatus === "present"
+        ? "حاضر"
+        : newStatus === "absent"
+        ? "غائب بدون عذر"
+        : "مجاز رسمياً";
+
+    const updatedItem: AttendanceRecordItem = {
+      id: `att-${sId}`,
+      studentId: sId,
+      studentName: targetStudent.fullName,
+      adminId: targetStudent.adminId,
+      ministryId: targetStudent.ministryId,
+      gradeClass: targetStudent.gradeSection,
+      stageCode: targetStudent.stageCode,
+      gradeCode: targetStudent.gradeCode,
+      date: new Date().toLocaleDateString("en-CA"),
+      status: newStatus as "present" | "absent" | "excused",
+      absenceDaysCount: count,
+      note: currentRecord?.note || defaultNote,
+    };
+
+    // Immediate local UI update
+    setAttendanceRecords((prev) => ({
+      ...prev,
+      [sId]: updatedItem,
+      [`att-${sId}`]: updatedItem,
+    }));
+
+    // Save to Firestore
+    try {
+      await saveAttendanceItemDb(updatedItem);
+    } catch (err) {
+      console.error("Error saving attendance to Firestore:", err);
+    }
+
+    if (isNowAbsent && count >= absenceThreshold && autoAlertEnabled && onAddNotification) {
       onAddNotification({
         type: "absence_alert",
-        title: `تنبيه غياب تلقائي: تجاوز حد الغياب (${triggeredStudent.absenceDaysCount} أيام)`,
-        message: `تجاوز الطالب ${triggeredStudent.name} حد الغياب المسموح به (${triggeredStudent.absenceDaysCount} أيام غياب تراكمي من أصل حد ${absenceThreshold} أيام). الصف: ${triggeredStudent.grade} - الرقم الإداري: ${triggeredStudent.adminId}. يُرجى توجيه إنذار رسمي لولي الأمر.`,
-        studentId: String(triggeredStudent.id),
-        studentName: triggeredStudent.name,
-        adminId: triggeredStudent.adminId,
-        absenceDays: triggeredStudent.absenceDaysCount,
+        title: `تنبيه غياب تلقائي: تجاوز حد الغياب (${count} أيام)`,
+        message: `تجاوز الطالب ${targetStudent.fullName} حد الغياب المسموح به (${count} أيام غياب تراكمي من أصل حد ${absenceThreshold} أيام). الصف: ${targetStudent.gradeSection} - الرقم الإداري: ${targetStudent.adminId}. يُرجى توجيه إنذار رسمي لولي الأمر.`,
+        studentId: sId,
+        studentName: targetStudent.fullName,
+        adminId: targetStudent.adminId,
+        absenceDays: count,
         threshold: absenceThreshold,
-        gradeClass: triggeredStudent.grade,
-        severity:
-          triggeredStudent.absenceDaysCount >= 7 ? "error" : "warning",
+        gradeClass: targetStudent.gradeSection,
+        severity: count >= 7 ? "error" : "warning",
       });
       onNotify(
-        `⚠️ تنبيه تلقائي: تجاوز الطالب (${triggeredStudent.name}) حد الغياب (${triggeredStudent.absenceDaysCount} أيام) وتم إرسال إشعار للوحة إشعارات النظام!`
+        `⚠️ تنبيه تلقائي: تجاوز الطالب (${targetStudent.fullName}) حد الغياب (${count} أيام) وتم إرسال إشعار للنظام!`
       );
     } else {
-      onNotify("تم تحديث حالة الحضور اليومي للطالب في السجل الإلكتروني");
+      const label = newStatus === "present" ? "حاضر" : newStatus === "absent" ? "غائب" : "مجاز";
+      onNotify(`تم تسجيل الطالب (${targetStudent.fullName}) [${label}] وتحديث السحابة بنجاح ☁️`);
     }
+  };
+
+  const handleUpdateNote = (studentId: string, noteText: string) => {
+    const targetStudent = students.find((s) => s.id === studentId);
+    if (!targetStudent) return;
+    const current = attendanceRecords[studentId] || attendanceRecords[`att-${studentId}`];
+    const updated: AttendanceRecordItem = {
+      id: `att-${studentId}`,
+      studentId: studentId,
+      studentName: targetStudent.fullName,
+      adminId: targetStudent.adminId,
+      ministryId: targetStudent.ministryId,
+      gradeClass: targetStudent.gradeSection,
+      stageCode: targetStudent.stageCode,
+      gradeCode: targetStudent.gradeCode,
+      date: new Date().toLocaleDateString("en-CA"),
+      status: current?.status || "present",
+      absenceDaysCount: current?.absenceDaysCount || 0,
+      note: noteText,
+    };
+    setAttendanceRecords((prev) => ({
+      ...prev,
+      [studentId]: updated,
+      [`att-${studentId}`]: updated,
+    }));
+    saveAttendanceItemDb(updated).catch(console.error);
   };
 
   const handleSendManualAlert = (student: any) => {
@@ -191,45 +272,63 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
     );
   };
 
-  const handleMarkAllPresent = () => {
-    setAttendanceList((prev) =>
-      prev.map((item) => {
-        if ((!item.stage || item.stage === stage) && (!item.gradeCode || item.gradeCode === gradeCode)) {
-          return { ...item, status: "present" };
-        }
-        return item;
-      })
+  const handleMarkAllPresent = async () => {
+    const classStudents = students.filter(
+      (s) => (!s.stageCode || s.stageCode === stage) && (!s.gradeCode || s.gradeCode === gradeCode)
     );
-    onNotify("تم تسجيل حضور جميع طلاب الصف المحددين بنجاح");
+
+    if (classStudents.length === 0) {
+      onNotify("لا يوجد طلاب مسجلين في هذا الصف لتسجيل حضورهم");
+      return;
+    }
+
+    const newMap = { ...attendanceRecords };
+    for (const st of classStudents) {
+      const current = newMap[st.id] || newMap[`att-${st.id}`];
+      let count = current?.absenceDaysCount || 0;
+      if (current?.status === "absent" && count > 0) {
+        count -= 1;
+      }
+      const updated: AttendanceRecordItem = {
+        id: `att-${st.id}`,
+        studentId: st.id,
+        studentName: st.fullName,
+        adminId: st.adminId,
+        ministryId: st.ministryId,
+        gradeClass: st.gradeSection,
+        stageCode: st.stageCode,
+        gradeCode: st.gradeCode,
+        date: new Date().toLocaleDateString("en-CA"),
+        status: "present",
+        absenceDaysCount: count,
+        note: "حاضر",
+      };
+      newMap[st.id] = updated;
+      newMap[`att-${st.id}`] = updated;
+      saveAttendanceItemDb(updated).catch(console.error);
+    }
+    setAttendanceRecords(newMap);
+    onNotify(`تم تسجيل حضور جميع طلاب الصف (${classStudents.length} طالب) وحفظه سحابياً ☁️`);
   };
 
-  // Sync with prop students
+  // Sync dynamically with prop students and cloud attendance
   const mergedAttendanceList = useMemo(() => {
-    const list = [...attendanceList];
-    students.forEach((st) => {
-      const exists = list.some(
-        (a) =>
-          a.id === st.id ||
-          a.adminId === st.adminId ||
-          a.ministryId === st.ministryId
-      );
-      if (!exists) {
-        list.push({
-          id: st.id,
-          ministryId: st.ministryId,
-          adminId: st.adminId,
-          name: st.fullName,
-          grade: `${st.gradeSection}`,
-          stage: st.stageCode,
-          gradeCode: st.gradeCode,
-          status: "present",
-          absenceDaysCount: 0,
-          note: "حاضر",
-        });
-      }
+    return students.map((st) => {
+      const saved = attendanceRecords[st.id] || attendanceRecords[`att-${st.id}`];
+      return {
+        id: st.id,
+        ministryId: st.ministryId,
+        adminId: st.adminId,
+        name: st.fullName,
+        grade: st.gradeSection,
+        stage: st.stageCode,
+        gradeCode: st.gradeCode,
+        status: saved?.status || "present",
+        absenceDaysCount: saved?.absenceDaysCount || 0,
+        note: saved?.note ?? "حاضر",
+      };
     });
-    return list;
-  }, [attendanceList, students]);
+  }, [attendanceRecords, students]);
 
   // Filter attendance records by active stage, grade, search query, and status
   const filteredAttendance = useMemo(() => {
@@ -291,8 +390,22 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
       status: "مسدد بالكامل",
     };
     setReceipts((prev) => [created, ...prev]);
+    const parsedAmount =
+      parseInt(newReceiptAmount.replace(/[^0-9]/g, ""), 10) || 50000;
+    saveFinanceReceiptDb({
+      id: `rcpt-${Date.now()}`,
+      receiptNumber: created.receiptNo,
+      studentName: created.studentName,
+      gradeClass: created.stageGrade,
+      amount: parsedAmount,
+      date: created.date,
+      paymentType: created.category,
+      accountantName: "المحاسب المالي",
+      status: created.status,
+      notes: created.adminId,
+    }).catch(console.error);
     setNewReceiptStudent("");
-    onNotify(`تم إصدار وصل القبض المالي رقم ${created.receiptNo} بنجاح`);
+    onNotify(`تم إصدار وحفظ وصل القبض المالي رقم ${created.receiptNo} سحابياً بنجاح ☁️`);
   };
 
   // 1. Attendance Module (Supports Teacher Subject Restriction + Cascading Stage -> Grade)
@@ -658,12 +771,7 @@ export const SecondaryModulesView: React.FC<SecondaryModuleProps> = ({
                           type="text"
                           value={row.note || ""}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            setAttendanceList((prev) =>
-                              prev.map((item) =>
-                                item.id === row.id ? { ...item, note: val } : item
-                              )
-                            );
+                            handleUpdateNote(row.id, e.target.value);
                           }}
                           placeholder="أضف ملاحظة..."
                           className="w-full bg-transparent border-b border-dashed border-surface-container-high focus:border-primary outline-none py-1 text-xs"

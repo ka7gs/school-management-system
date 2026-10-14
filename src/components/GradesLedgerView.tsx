@@ -18,6 +18,10 @@ import {
   SchoolConfig,
 } from "../data/mockData";
 import { UserRole } from "./LoginView";
+import {
+  subscribeToMultiGrades,
+  saveMultiGradeDb,
+} from "../firebase/firestoreService";
 
 interface GradesLedgerViewProps {
   onNotify: (msg: string) => void;
@@ -49,9 +53,17 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
   );
 
   // Master State for Multi-Subject Student Grades
-  const [studentGradesList, setStudentGradesList] = useState<StudentMultiSubjectGrade[]>(() => {
-    return [];
-  });
+  const [studentGradesList, setStudentGradesList] = useState<StudentMultiSubjectGrade[]>([]);
+
+  // Realtime Firestore synchronization for grades across all devices
+  useEffect(() => {
+    const unsub = subscribeToMultiGrades((cloudGrades) => {
+      if (cloudGrades && cloudGrades.length > 0) {
+        setStudentGradesList(cloudGrades);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Track active selected student for deep focus / editing / printing
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
@@ -287,18 +299,27 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
   };
 
   // Handler: Save grades
-  const handleSaveAllGrades = () => {
+  const handleSaveAllGrades = async () => {
     setSaveStatus({
-      text: "جاري حفظ وتدقيق السجلات على الخادم المركزي...",
+      text: "جاري حفظ وتدقيق السجلات سحابياً في Firebase...",
       state: "saving",
     });
-    setTimeout(() => {
+    try {
+      for (const record of effectiveStudentsGrades) {
+        await saveMultiGradeDb(record);
+      }
       setSaveStatus({
-        text: "تم حفظ واعتماد السجلات رسمياً",
+        text: "تم حفظ واعتماد السجلات سحابياً",
         state: "saved",
       });
-      onNotify("تم اعتماد وحفظ سجل الدرجات الوزاري وتحديث الجداول بنجاح");
-    }, 500);
+      onNotify("تم اعتماد وحفظ سجل الدرجات الوزاري سحابياً وتحديث الجداول بنجاح ☁️");
+    } catch (err) {
+      console.error(err);
+      setSaveStatus({
+        text: "حدث خطأ في الحفظ السحابي",
+        state: "unsaved",
+      });
+    }
   };
 
   // Handler: Export Single Student Result to Excel

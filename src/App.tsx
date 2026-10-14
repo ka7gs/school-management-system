@@ -17,6 +17,7 @@ import {
   saveSchoolConfigToDb,
   subscribeToStudents,
   addOrUpdateStudentDb,
+  saveMultipleStudentsDb,
   deleteStudentDb,
   subscribeToUserAccounts,
   saveUserAccountDb,
@@ -167,16 +168,41 @@ const ROLE_PROFILES: Record<
 };
 
 export default function App() {
-  const [userRole, setUserRole] = useState<UserRole>("principal");
-  const [activePath, setActivePath] = useState<ScreenPath>("dashboard");
+  const savedSession = (() => {
+    try {
+      const raw =
+        localStorage.getItem("school_admin_session") ||
+        sessionStorage.getItem("school_admin_session");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!savedSession);
+  const [userRole, setUserRole] = useState<UserRole>(
+    () => (savedSession?.role as UserRole) || "principal"
+  );
+  const [activePath, setActivePath] = useState<ScreenPath>(() => {
+    if (savedSession) {
+      return (
+        (ROLE_PROFILES[savedSession.role as UserRole]?.defaultPath as ScreenPath) ||
+        "dashboard"
+      );
+    }
+    return "login";
+  });
   const [userAccounts, setUserAccounts] =
     useState<UserAccount[]>(INITIAL_USER_ACCOUNTS);
-  const [currentUserName, setCurrentUserName] =
-    useState<string>("أ.د. حسام عبد الرضا");
-  const [currentUserRoleTitle, setCurrentUserRoleTitle] =
-    useState<string>("مدير المدرسة (تحكم كامل)");
-  const [currentTeacherSubject, setCurrentTeacherSubject] =
-    useState<string>("الرياضيات (Mathematics)");
+  const [currentUserName, setCurrentUserName] = useState<string>(
+    () => savedSession?.fullName || "أ.د. حسام عبد الرضا الربيعي"
+  );
+  const [currentUserRoleTitle, setCurrentUserRoleTitle] = useState<string>(
+    () => savedSession?.roleTitle || "مدير المدرسة (تحكم كامل)"
+  );
+  const [currentTeacherSubject, setCurrentTeacherSubject] = useState<string>(
+    () => savedSession?.teacherSubject || "الرياضيات (Mathematics)"
+  );
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [openNewStudentModal, setOpenNewStudentModal] =
     useState<boolean>(false);
@@ -419,10 +445,13 @@ export default function App() {
 
   const handleAddMultipleStudents = async (newStudents: StudentRecord[]) => {
     setStudents((prev) => [...newStudents, ...prev]);
-    for (const st of newStudents) {
-      addOrUpdateStudentDb(st).catch(console.error);
+    try {
+      await saveMultipleStudentsDb(newStudents);
+      handleNotify(`تمت إضافة ${newStudents.length} طالب ومزامنتهم سحابياً بنجاح ☁️`);
+    } catch (err) {
+      console.error("Firebase batch student add err:", err);
+      handleNotify("تعذر حفظ استيراد الطلبة سحابياً.");
     }
-    handleNotify(`تمت إضافة ${newStudents.length} طالب ومزامنتهم سحابياً`);
   };
 
   const handleUpdateStudentStatus = async (
@@ -473,28 +502,46 @@ export default function App() {
     }
   };
 
-  const handleSwitchToAccount = (account: UserAccount) => {
-    handleLoginSuccess({
-      role: account.role,
-      roleTitle: account.roleTitle,
-      directorate: account.directorate || "بغداد / الكرخ الأولى",
-      schoolName: account.schoolName || "ثانوية المتميزين للبنين",
-      username: account.username,
-      fullName: account.fullName,
-      teacherSubject: account.teacherSubject,
-    });
-    handleNotify(`تم تسجيل الدخول بصلاحية: ${account.fullName} (${account.roleTitle})`);
+  const handleDeleteStudent = async (studentId: string) => {
+    setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    try {
+      await deleteStudentDb(studentId);
+      handleNotify("تم حذف قيد الطالب ومزامنة التغيير سحابياً بنجاح");
+    } catch (err) {
+      console.error("Firebase student delete err:", err);
+    }
   };
 
-  const handleLoginSuccess = (info: {
-    role: UserRole;
-    roleTitle: string;
-    directorate: string;
-    schoolName: string;
-    username: string;
-    fullName?: string;
-    teacherSubject?: string;
-  }) => {
+  const handleLogout = () => {
+    localStorage.removeItem("school_admin_session");
+    sessionStorage.removeItem("school_admin_session");
+    setIsAuthenticated(false);
+    setActivePath("login");
+    handleNotify("تم تسجيل الخروج وتأمين المنظومة بنجاح");
+  };
+
+  const handleLoginSuccess = (
+    info: {
+      role: UserRole;
+      roleTitle: string;
+      directorate: string;
+      schoolName: string;
+      username: string;
+      fullName?: string;
+      teacherSubject?: string;
+    },
+    rememberMe: boolean = true
+  ) => {
+    const sessionData = {
+      ...info,
+      timestamp: Date.now(),
+    };
+    if (rememberMe) {
+      localStorage.setItem("school_admin_session", JSON.stringify(sessionData));
+    } else {
+      sessionStorage.setItem("school_admin_session", JSON.stringify(sessionData));
+    }
+    setIsAuthenticated(true);
     setSchoolMeta({
       schoolName: info.schoolName,
       directorate: info.directorate,
@@ -514,7 +561,7 @@ export default function App() {
     teacherSubject: currentTeacherSubject,
   };
 
-  if (activePath === "login") {
+  if (!isAuthenticated || activePath === "login") {
     return (
       <LoginView
         accounts={userAccounts}
@@ -590,24 +637,24 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-space-md">
-          {/* Cloud Database Sync Status Badge */}
+          {/* Live Cloud Save & Sync Status Badge */}
           <button
             type="button"
             onClick={handleManualSync}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100/90 text-emerald-800 border border-emerald-200 text-xs font-semibold cursor-pointer transition-all shadow-2xs"
-            title="قاعدة بيانات Firebase السحابية متصلة ومزامنة - انقر لإجراء مزامنة فورية كاملة"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold cursor-pointer transition-all shadow-xs"
+            title="نظام الحفظ المباشر Live Save نشط: جميع التغييرات تحفظ سحابياً وتظهر فوراً على كافة الأجهزة - انقر للمزامنة الفورية"
           >
             <span
-              className={`w-2 h-2 rounded-full bg-emerald-500 ${
+              className={`w-2.5 h-2.5 rounded-full bg-emerald-500 ${
                 isSyncing ? "animate-ping" : "animate-pulse"
               }`}
             />
-            <span className="material-symbols-outlined text-[16px] text-emerald-600">
-              cloud_done
+            <span className="material-symbols-outlined text-[18px] text-emerald-600">
+              cloud_sync
             </span>
-            <span className="hidden sm:inline">
-              {isSyncing ? "جاري المزامنة..." : "Firebase سحابي"}
+            <span className="font-bold">
+              {isSyncing ? "جاري المزامنة الآن..." : "حفظ حي سحابي (Live Save)"}
             </span>
           </button>
 
@@ -852,8 +899,8 @@ export default function App() {
             </div>
             <button
               type="button"
-              onClick={() => handleNavigate("login")}
-              title="بوابة تسجيل الدخول المركزية"
+              onClick={handleLogout}
+              title="تسجيل الخروج وتأمين المنظومة"
               className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px]">
@@ -941,7 +988,7 @@ export default function App() {
         <div className="px-space-md pt-space-md flex flex-col gap-space-sm">
           <button
             type="button"
-            onClick={() => handleNavigate("login")}
+            onClick={handleLogout}
             className="w-full bg-surface-container-high/70 hover:bg-surface-container-highest text-primary px-space-md py-space-sm rounded flex items-center justify-between transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-space-sm">
@@ -949,11 +996,11 @@ export default function App() {
                 lock_person
               </span>
               <span className="font-label-sm text-label-sm font-bold">
-                تبديل الحساب / تسجيل الدخول
+                تسجيل الخروج وتأمين الجلسة
               </span>
             </div>
             <span className="material-symbols-outlined text-[16px]">
-              arrow_back
+              logout
             </span>
           </button>
 
@@ -995,7 +1042,6 @@ export default function App() {
               onDeleteAccount={handleDeleteAccount}
               onNotify={handleNotify}
               onNavigate={handleNavigate}
-              onSwitchToAccount={handleSwitchToAccount}
             />
           )}
 
@@ -1003,6 +1049,7 @@ export default function App() {
             <ClassroomsView
               students={students}
               onAddStudent={handleAddStudent}
+              onDeleteStudent={handleDeleteStudent}
               onNavigate={handleNavigate}
               onNotify={handleNotify}
             />
@@ -1024,6 +1071,7 @@ export default function App() {
               onAddStudent={handleAddStudent}
               onAddMultipleStudents={handleAddMultipleStudents}
               onUpdateStudentStatus={handleUpdateStudentStatus}
+              onDeleteStudent={handleDeleteStudent}
               openModalInitially={openNewStudentModal}
               onModalHandled={() => setOpenNewStudentModal(false)}
               onNotify={handleNotify}

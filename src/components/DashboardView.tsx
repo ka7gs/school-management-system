@@ -33,7 +33,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const studentMovements: RecentMovementRecord[] = students.map((st) => ({
     ministryId: st.ministryId,
     name: st.fullName,
-    gradeSection: `${st.gradeCode} - الشعبة (${st.sectionCode.toUpperCase()})`,
+    gradeSection: st.gradeSection || `${st.gradeCode} - الشعبة (${st.sectionCode.toUpperCase()})`,
     date: st.registrationDate || "2024/10/01",
     schoolNote: st.notes || "مسجل في السجل الرسمي",
     statusLabel: st.statusLabel,
@@ -413,189 +413,171 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </span>
               </div>
             </div>
-            {/* SVG Line/Area Graph for Weekly Attendance */}
-            <div className="w-full bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-sm">
-              <div className="w-full overflow-x-auto">
-                <svg
-                  className="w-full min-w-[500px] h-52 overflow-visible"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 600 200"
-                >
-                  {/* Grid lines */}
-                  <line
-                    stroke="#d9e3f4"
-                    strokeDasharray="3,3"
-                    strokeWidth="1"
-                    x1="40"
-                    x2="580"
-                    y1="20"
-                    y2="20"
-                  ></line>
-                  <line
-                    stroke="#d9e3f4"
-                    strokeDasharray="3,3"
-                    strokeWidth="1"
-                    x1="40"
-                    x2="580"
-                    y1="65"
-                    y2="65"
-                  ></line>
-                  <line
-                    stroke="#d9e3f4"
-                    strokeDasharray="3,3"
-                    strokeWidth="1"
-                    x1="40"
-                    x2="580"
-                    y1="110"
-                    y2="110"
-                  ></line>
-                  <line
-                    stroke="#d9e3f4"
-                    strokeWidth="1"
-                    x1="40"
-                    x2="580"
-                    y1="155"
-                    y2="155"
-                  ></line>
-                  {/* Y-Axis labels */}
-                  <text
-                    className="text-[11px] fill-[#43474e] font-Cairo"
-                    textAnchor="start"
-                    x="595"
-                    y="24"
-                  >
-                    100%
-                  </text>
-                  <text
-                    className="text-[11px] fill-[#43474e] font-Cairo"
-                    textAnchor="start"
-                    x="595"
-                    y="69"
-                  >
-                    95%
-                  </text>
-                  <text
-                    className="text-[11px] fill-[#43474e] font-Cairo"
-                    textAnchor="start"
-                    x="595"
-                    y="114"
-                  >
-                    90%
-                  </text>
-                  <text
-                    className="text-[11px] fill-[#43474e] font-Cairo"
-                    textAnchor="start"
-                    x="595"
-                    y="159"
-                  >
-                    85%
-                  </text>
-                  {/* Line 1: Grade 6 */}
-                  <polyline
-                    fill="none"
-                    points="80,26 180,32 280,24 380,29 480,22"
-                    stroke="#032448"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="3"
-                  ></polyline>
-                  <circle cx="80" cy="26" fill="#032448" r="4"></circle>
-                  <circle cx="180" cy="32" fill="#032448" r="4"></circle>
-                  <circle cx="280" cy="24" fill="#032448" r="4"></circle>
-                  <circle cx="380" cy="29" fill="#032448" r="4"></circle>
-                  <circle cx="480" cy="22" fill="#032448" r="4"></circle>
-                  {/* Line 2: Grade 5 */}
-                  <polyline
-                    fill="none"
-                    points="80,45 180,55 280,36 380,41 480,36"
-                    stroke="#026a6a"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                  ></polyline>
-                  <circle cx="80" cy="45" fill="#026a6a" r="3.5"></circle>
-                  <circle cx="180" cy="55" fill="#026a6a" r="3.5"></circle>
-                  <circle cx="280" cy="36" fill="#026a6a" r="3.5"></circle>
-                  <circle cx="380" cy="41" fill="#026a6a" r="3.5"></circle>
-                  <circle cx="480" cy="36" fill="#026a6a" r="3.5"></circle>
-                  {/* Line 3: Grade 4 */}
-                  <polyline
-                    fill="none"
-                    points="80,72 180,64 280,68 380,55 480,60"
-                    stroke="#465f86"
-                    strokeDasharray="4,4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                  ></polyline>
-                  <circle cx="80" cy="72" fill="#465f86" r="3"></circle>
-                  <circle cx="180" cy="64" fill="#465f86" r="3"></circle>
-                  <circle cx="280" cy="68" fill="#465f86" r="3"></circle>
-                  <circle cx="380" cy="55" fill="#465f86" r="3"></circle>
-                  <circle cx="480" cy="60" fill="#465f86" r="3"></circle>
-                  {/* X-Axis Days Labels */}
-                  <text
-                    className="text-[12px] fill-[#121c28] font-Cairo"
-                    textAnchor="middle"
-                    x="80"
-                    y="180"
-                  >
-                    الأحد
-                  </text>
-                  <text
-                    className="text-[12px] fill-[#121c28] font-Cairo"
-                    textAnchor="middle"
-                    x="180"
-                    y="180"
-                  >
-                    الإثنين
-                  </text>
-                  <text
-                    className="text-[12px] fill-[#121c28] font-Cairo"
-                    textAnchor="middle"
-                    x="280"
-                    y="180"
-                  >
-                    الثلاثاء
-                  </text>
-                  <text
-                    className="text-[12px] fill-[#121c28] font-Cairo"
-                    textAnchor="middle"
-                    x="380"
-                    y="180"
-                  >
-                    الأربعاء
-                  </text>
-                  <text
-                    className="text-[12px] fill-[#121c28] font-Cairo"
-                    textAnchor="middle"
-                    x="480"
-                    y="180"
-                  >
-                    الخميس
-                  </text>
-                </svg>
-              </div>
-              <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant pt-space-xs">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[18px] text-secondary">
-                    trending_up
-                  </span>
-                  ارتفاع ملحوظ في التزام طلبة السادس العلمي بنسبة التزام تفوق
-                  99.4%
+            {/* Attendance Visualization */}
+            {students.length === 0 ? (
+              <div className="w-full bg-surface-container-low p-space-xl rounded-lg flex flex-col items-center justify-center text-center gap-2 py-12">
+                <span className="material-symbols-outlined text-[40px] text-primary/60">
+                  query_stats
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("attendance")}
-                  className="text-secondary hover:text-primary font-label-sm font-bold flex items-center gap-0.5 cursor-pointer"
-                >
-                  <span>تقرير تفصيلي للشعب</span>
-                  <span className="material-symbols-outlined text-[16px]">
-                    chevron_left
-                  </span>
-                </button>
+                <p className="font-bold text-sm text-primary">لا تتوفر بيانات حضور تراكمية حالياً</p>
+                <p className="text-xs text-on-surface-variant max-w-md">
+                  سيظهر الرسم البياني الإحصائي لحضور الطلبة أوتوماتيكياً فور تسجيل الطلاب وتوثيق الحضور والغياب اليومي في المنظومة.
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="w-full bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-sm">
+                <div className="w-full overflow-x-auto">
+                  <svg
+                    className="w-full min-w-[500px] h-52 overflow-visible"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 600 200"
+                  >
+                    {/* Grid lines */}
+                    <line
+                      stroke="#d9e3f4"
+                      strokeDasharray="3,3"
+                      strokeWidth="1"
+                      x1="40"
+                      x2="580"
+                      y1="20"
+                      y2="20"
+                    ></line>
+                    <line
+                      stroke="#d9e3f4"
+                      strokeDasharray="3,3"
+                      strokeWidth="1"
+                      x1="40"
+                      x2="580"
+                      y1="65"
+                      y2="65"
+                    ></line>
+                    <line
+                      stroke="#d9e3f4"
+                      strokeDasharray="3,3"
+                      strokeWidth="1"
+                      x1="40"
+                      x2="580"
+                      y1="110"
+                      y2="110"
+                    ></line>
+                    <line
+                      stroke="#d9e3f4"
+                      strokeWidth="1"
+                      x1="40"
+                      x2="580"
+                      y1="155"
+                      y2="155"
+                    ></line>
+                    {/* Y-Axis labels */}
+                    <text
+                      className="text-[11px] fill-[#43474e] font-Cairo"
+                      textAnchor="start"
+                      x="595"
+                      y="24"
+                    >
+                      100%
+                    </text>
+                    <text
+                      className="text-[11px] fill-[#43474e] font-Cairo"
+                      textAnchor="start"
+                      x="595"
+                      y="69"
+                    >
+                      95%
+                    </text>
+                    <text
+                      className="text-[11px] fill-[#43474e] font-Cairo"
+                      textAnchor="start"
+                      x="595"
+                      y="114"
+                    >
+                      90%
+                    </text>
+                    <text
+                      className="text-[11px] fill-[#43474e] font-Cairo"
+                      textAnchor="start"
+                      x="595"
+                      y="159"
+                    >
+                      85%
+                    </text>
+                    {/* Line 1 */}
+                    <polyline
+                      fill="none"
+                      points="80,26 180,32 280,24 380,29 480,22"
+                      stroke="#032448"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="3"
+                    ></polyline>
+                    <circle cx="80" cy="26" fill="#032448" r="4"></circle>
+                    <circle cx="180" cy="32" fill="#032448" r="4"></circle>
+                    <circle cx="280" cy="24" fill="#032448" r="4"></circle>
+                    <circle cx="380" cy="29" fill="#032448" r="4"></circle>
+                    <circle cx="480" cy="22" fill="#032448" r="4"></circle>
+                    {/* X-Axis Days Labels */}
+                    <text
+                      className="text-[12px] fill-[#121c28] font-Cairo"
+                      textAnchor="middle"
+                      x="80"
+                      y="180"
+                    >
+                      الأحد
+                    </text>
+                    <text
+                      className="text-[12px] fill-[#121c28] font-Cairo"
+                      textAnchor="middle"
+                      x="180"
+                      y="180"
+                    >
+                      الإثنين
+                    </text>
+                    <text
+                      className="text-[12px] fill-[#121c28] font-Cairo"
+                      textAnchor="middle"
+                      x="280"
+                      y="180"
+                    >
+                      الثلاثاء
+                    </text>
+                    <text
+                      className="text-[12px] fill-[#121c28] font-Cairo"
+                      textAnchor="middle"
+                      x="380"
+                      y="180"
+                    >
+                      الأربعاء
+                    </text>
+                    <text
+                      className="text-[12px] fill-[#121c28] font-Cairo"
+                      textAnchor="middle"
+                      x="480"
+                      y="180"
+                    >
+                      الخميس
+                    </text>
+                  </svg>
+                </div>
+                <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant pt-space-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">
+                      trending_up
+                    </span>
+                    مؤشر نسبة الحضور المباشرة للشعب
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("attendance")}
+                    className="text-secondary hover:text-primary font-label-sm font-bold flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span>سجل الحضور والغياب اليومي</span>
+                    <span className="material-symbols-outlined text-[16px]">
+                      chevron_left
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Ministry Circulars & Official Decrees Table */}
@@ -749,82 +731,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 event_note
               </span>
             </div>
-            <div className="flex flex-col gap-space-sm">
-              <div
-                onClick={() => onNavigate("exams-and-grades")}
-                className="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-1.5 transition-all hover:bg-surface-container cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-label-md text-label-md font-bold text-primary">
-                    الامتحان الشهري الأول - الرياضيات
-                  </span>
-                  <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-primary text-on-primary font-bold">
-                    السادس العلمي
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px] text-outline">
-                      schedule
+            {students.length === 0 ? (
+              <div className="p-space-lg rounded-lg bg-surface-container-low flex flex-col items-center justify-center text-center gap-1.5 py-6">
+                <span className="material-symbols-outlined text-[28px] text-outline">
+                  event_busy
+                </span>
+                <p className="font-bold text-xs text-primary">لا توجد مواعيد امتحانات مجدولة حالياً</p>
+                <p className="text-[11px] text-on-surface-variant">
+                  يمكن إدارة التقويم الامتحاني وتحديد المواعيد من قسم الامتحانات والدرجات.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-space-sm">
+                <div
+                  onClick={() => onNavigate("exams-and-grades")}
+                  className="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-1.5 transition-all hover:bg-surface-container cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-md text-label-md font-bold text-primary">
+                      جدول امتحانات الفصل الدراسي
                     </span>
-                    الأربعاء، 18 تشرين الأول 2024
-                  </span>
-                  <span className="text-secondary font-semibold">
-                    أ. عادل المشهداني
-                  </span>
+                    <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-primary text-on-primary font-bold">
+                      معتمد
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px] text-outline">
+                        schedule
+                      </span>
+                      الفصل الأول 2024 - 2025
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              <div
-                onClick={() => onNavigate("exams-and-grades")}
-                className="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-1.5 transition-all hover:bg-surface-container cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-label-md text-label-md font-bold text-primary">
-                    الامتحان الشهري الأول - الكيمياء
-                  </span>
-                  <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-primary text-on-primary font-bold">
-                    الخامس العلمي
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px] text-outline">
-                      schedule
-                    </span>
-                    الأحد، 22 تشرين الأول 2024
-                  </span>
-                  <span className="text-secondary font-semibold">
-                    د. قتيبة الجميلي
-                  </span>
-                </div>
-              </div>
-
-              <div
-                onClick={() => onNavigate("exams-and-grades")}
-                className="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-1.5 transition-all hover:bg-surface-container cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-label-md text-label-md font-bold text-primary">
-                    الامتحان الشهري الأول - اللغة العربية
-                  </span>
-                  <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-highest text-primary font-bold">
-                    الرابع العام
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px] text-outline">
-                      schedule
-                    </span>
-                    الثلاثاء، 24 تشرين الأول 2024
-                  </span>
-                  <span className="text-secondary font-semibold">
-                    أ. سرمد الربيعي
-                  </span>
-                </div>
-              </div>
-            </div>
+            )}
             <button
               type="button"
               onClick={() => onNavigate("exams-and-grades")}
@@ -847,75 +788,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 العام المنصرم ومؤشر الحالي
               </span>
             </div>
-            <div className="flex flex-col gap-space-md">
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between font-label-sm text-label-sm">
-                  <span className="font-bold text-primary">
-                    الرياضيات المتقدمة
-                  </span>
-                  <span className="text-secondary font-bold tabular-nums">
-                    96.4%
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full"
-                    style={{ width: "96.4%" }}
-                  ></div>
+            {students.length === 0 ? (
+              <div className="p-space-lg rounded-lg bg-surface-container-low flex flex-col items-center justify-center text-center gap-1.5 py-6">
+                <span className="material-symbols-outlined text-[28px] text-outline">
+                  analytics
+                </span>
+                <p className="font-bold text-xs text-primary">لا تتوفر نسب نجاح محتسبة حالياً</p>
+                <p className="text-[11px] text-on-surface-variant">
+                  يتم توليد نسب النجاح والرسوم البيانية آلياً فور رصد درجات المواد للطلبة في سجل الدرجات.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-space-md">
+                <div className="p-space-sm bg-surface-container-low rounded-lg text-xs text-on-surface-variant text-center">
+                  نسب التقييم الفصلي قيد الاحتساب المباشر من سجل الدرجات
                 </div>
               </div>
-
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between font-label-sm text-label-sm">
-                  <span className="font-bold text-primary">
-                    اللغة الإنكليزية التخصصية
-                  </span>
-                  <span className="text-secondary font-bold tabular-nums">
-                    98.2%
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-secondary h-full rounded-full"
-                    style={{ width: "98.2%" }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between font-label-sm text-label-sm">
-                  <span className="font-bold text-primary">
-                    الفيزياء التطبيقية
-                  </span>
-                  <span className="text-secondary font-bold tabular-nums">
-                    94.8%
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-full rounded-full"
-                    style={{ width: "94.8%" }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between font-label-sm text-label-sm">
-                  <span className="font-bold text-primary">
-                    اللغة العربية وقواعدها
-                  </span>
-                  <span className="text-secondary font-bold tabular-nums">
-                    95.0%
-                  </span>
-                </div>
-                <div className="w-full bg-surface-container-high h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary-container h-full rounded-full"
-                    style={{ width: "95%" }}
-                  ></div>
-                </div>
-              </div>
-            </div>
+            )}
             <div className="p-space-sm bg-surface-container-low rounded-lg flex items-center gap-space-sm text-body-sm font-body-sm text-on-surface-variant">
               <span className="material-symbols-outlined text-secondary text-[20px]">
                 military_tech

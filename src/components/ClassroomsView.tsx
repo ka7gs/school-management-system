@@ -11,6 +11,7 @@ import {
 interface ClassroomsViewProps {
   students: StudentRecord[];
   onAddStudent: (newStudent: StudentRecord) => void;
+  onDeleteStudent?: (studentId: string) => void;
   onNavigate: (path: string) => void;
   onNotify: (msg: string) => void;
 }
@@ -18,6 +19,7 @@ interface ClassroomsViewProps {
 export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
   students,
   onAddStudent,
+  onDeleteStudent,
   onNavigate,
   onNotify,
 }) => {
@@ -80,10 +82,13 @@ export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
         ? "d"
         : "a";
 
+    const defaultAvatar =
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80";
+
     const created: StudentRecord = {
       id: `st-cls-${Date.now()}`,
       seq: seqStr,
-      avatar: students[0]?.avatar || "",
+      avatar: (students && students.length > 0 && students[0]?.avatar && students[0]?.avatar !== "") ? students[0].avatar : defaultAvatar,
       avatarAlt: "صورة الطالب",
       fullName: newStudentName.trim(),
       birthInfo: "تولد: بغداد/الكرخ",
@@ -99,6 +104,7 @@ export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
       statusLabel: "مستمر بالدوام",
       statusType: "active",
       registrationDate: "2024/10/15",
+      address: "العراق - بغداد",
     };
 
     onAddStudent(created);
@@ -279,9 +285,27 @@ export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
                           </span>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded bg-surface-container-lowest text-primary font-label-sm text-[11px] shrink-0">
-                        شعبة ({st.sectionCode === "a" ? "أ" : st.sectionCode === "b" ? "ب" : st.sectionCode === "c" ? "ج" : "د"})
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="px-2 py-0.5 rounded bg-surface-container-lowest text-primary font-label-sm text-[11px] shrink-0">
+                          شعبة ({st.sectionCode === "a" ? "أ" : st.sectionCode === "b" ? "ب" : st.sectionCode === "c" ? "ج" : "د"})
+                        </span>
+                        {onDeleteStudent && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`هل أنت متأكد من حذف قيد الطالب (${st.fullName}) نهائياً من المنظومة وقاعدة البيانات؟`)) {
+                                onDeleteStudent(st.id);
+                                onNotify(`تم حذف الطالب (${st.fullName}) ومزامنة التغيير سحابياً`);
+                              }
+                            }}
+                            title="حذف الطالب من الصف"
+                            className="p-1 rounded text-error hover:bg-error/10 transition-colors cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -403,6 +427,7 @@ export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
                         <th className="px-3">الشعبة</th>
                         <th className="px-3">ولي الأمر والهاتف</th>
                         <th className="px-3 text-center">الحالة</th>
+                        <th className="px-3 text-center">الإجراءات</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-container">
@@ -443,12 +468,30 @@ export const ClassroomsView: React.FC<ClassroomsViewProps> = ({
                                 {st.statusLabel}
                               </span>
                             </td>
+                            <td className="px-3 py-2.5 text-center">
+                              {onDeleteStudent && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`هل أنت متأكد من حذف قيد الطالب (${st.fullName}) نهائياً من المنظومة وقاعدة البيانات السحابية؟`)) {
+                                      onDeleteStudent(st.id);
+                                      onNotify(`تم حذف قيد الطالب (${st.fullName}) بنجاح ومزامنة التغيير`);
+                                    }
+                                  }}
+                                  title="حذف الطالب نهائياً من السجل"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-error/10 hover:bg-error hover:text-white text-error font-bold text-[11px] transition-all cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                                  <span>حذف</span>
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="py-6 text-center text-on-surface-variant"
                           >
                             لا يوجد طلاب في هذا الصف حالياً. يمكنك إضافة طالب من

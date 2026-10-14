@@ -1,13 +1,18 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   computeStudentSummary,
-  INITIAL_STUDENT_MULTI_GRADES,
   SchoolConfig,
   STAGE_GRADES,
   STAGE_LABELS,
   StageKey,
   StudentRecord,
+  StudentMultiSubjectGrade,
 } from "../data/mockData";
+import {
+  subscribeToMultiGrades,
+  subscribeToFinanceReceipts,
+  FinanceReceiptItem,
+} from "../firebase/firestoreService";
 
 interface DetailedReportsViewProps {
   onNotify: (msg: string) => void;
@@ -28,10 +33,69 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
 
   const [selectedStage, setSelectedStage] = useState<"all" | StageKey>("all");
   const [selectedExamPeriod, setSelectedExamPeriod] = useState<"all" | "midterm" | "final">("all");
+  const [multiGradesList, setMultiGradesList] = useState<StudentMultiSubjectGrade[]>([]);
+  const [financeReceiptsList, setFinanceReceiptsList] = useState<FinanceReceiptItem[]>([]);
+
+  useEffect(() => {
+    const unsubGrades = subscribeToMultiGrades((cloudData) => {
+      setMultiGradesList(cloudData || []);
+    });
+    const unsubFin = subscribeToFinanceReceipts((cloudReceipts) => {
+      setFinanceReceiptsList(cloudReceipts || []);
+    });
+    return () => {
+      unsubGrades();
+      unsubFin();
+    };
+  }, []);
+
+  // Compute real dynamic census breakdown from live students
+  const censusRows = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        stage: string;
+        gradeClass: string;
+        total: number;
+        males: number;
+        females: number;
+        active: number;
+        transferred: number;
+        absent: number;
+      }
+    >();
+
+    students.forEach((st) => {
+      const stageName = STAGE_LABELS[st.stageCode] || st.stageCode;
+      const classLabel = st.gradeSection || st.gradeCode;
+      const key = `${st.stageCode}__${classLabel}`;
+
+      const item = map.get(key) || {
+        stage: stageName,
+        gradeClass: classLabel,
+        total: 0,
+        males: 0,
+        females: 0,
+        active: 0,
+        transferred: 0,
+        absent: 0,
+      };
+
+      item.total += 1;
+      item.males += 1;
+      if (st.statusType === "active") item.active += 1;
+      else if (st.statusType === "transferred") item.transferred += 1;
+      else if (st.statusType === "dismissed") item.absent += 1;
+
+      map.set(key, item);
+    });
+
+    return Array.from(map.values());
+  }, [students]);
 
   // Computed Grades Summaries
   const studentGrades = useMemo(() => {
-    return INITIAL_STUDENT_MULTI_GRADES.map((rec) => {
+    return multiGradesList.map((rec) => {
       const summary = computeStudentSummary(rec);
       let gradeLetter = "مقبول";
       if (summary.average >= 90) gradeLetter = "امتياز";
@@ -148,21 +212,34 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
       ]);
       filename = "كشف_الطلبة_المكملين_والراسبين";
     } else if (activeReportTab === "census") {
-      headers = ["المرحلة", "الصف", "إجمالي الطلبة", "الذكور", "الإناث", "المستمرون", "المنقولون"];
-      rows = [
-        ["المرحلة الإعدادية", "الخامس العلمي (أ)", 38, 38, 0, 37, 1],
-        ["المرحلة الإعدادية", "الخامس العلمي (ب)", 36, 36, 0, 36, 0],
-        ["المرحلة الإعدادية", "السادس العلمي (أ)", 42, 42, 0, 42, 0],
-        ["المرحلة الإعدادية", "الرابع العلمي (أ)", 35, 35, 0, 35, 0],
-        ["المرحلة المتوسطة", "الثالث المتوسط (أ)", 40, 40, 0, 39, 1],
-      ];
+      headers = ["المرحلة", "الصف والشعبة", "إجمالي الطلبة", "الذكور", "الإناث", "المستمرون", "المنقولون"];
+      rows = censusRows.length > 0
+        ? censusRows.map((r) => [
+            r.stage,
+            r.gradeClass,
+            r.total,
+            r.males,
+            r.females,
+            r.active,
+            r.transferred,
+          ])
+        : [["-", "لا توجد سجلات", 0, 0, 0, 0, 0]];
       filename = "استمارة_الإحصاء_المدرسي_السنوي";
     } else {
+      const activeCount = students.filter((s) => s.statusType === "active").length;
+      const totalCollected = financeReceiptsList.reduce((acc, r) => acc + (r.amount || 0), 0);
       headers = ["ت", "اسم التقرير", "القيمة", "الملاحظات"];
       rows = [
-        [1, "إجمالي الطلبة", 1240, "مسجلون بالقيد العام"],
-        [2, "نسبة الحضور العام", "94.8%", "ضمن المعيار النموذجي"],
-        [3, "المقبوضات المالية", "12,450,000 د.ع", "صندوق المدرسة المعتمد"],
+        [1, "إجمالي الطلبة", students.length, "مسجلون بالقيد العام"],
+        [
+          2,
+          "نسبة الالتزام والدوام",
+          students.length > 0
+            ? `${Math.round((activeCount / students.length) * 100)}%`
+            : "0%",
+          "محتسبة من السجل المركزي",
+        ],
+        [3, "المقبوضات المالية", `${totalCollected.toLocaleString()} د.ع`, "صندوق المدرسة المعتمد"],
       ];
       filename = "تقرير_النظام_الموجز";
     }
@@ -667,7 +744,7 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
               </h3>
             </div>
             <span className="text-xs font-bold text-secondary bg-secondary-container px-3 py-1 rounded-lg">
-              العام الدراسي 2024 - 2025
+              العام الدراسي {schoolConfig.academicYear || "2024 - 2025"}
             </span>
           </div>
 
@@ -677,7 +754,7 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
                 <tr className="bg-surface-container-high/60 text-primary font-bold h-12 border-b border-surface-container-high">
                   <th className="px-4">المرحلة</th>
                   <th className="px-4">الصف والشعبة</th>
-                  <th className="px-4 text-center">المقيدين بداية العام</th>
+                  <th className="px-4 text-center">المقيدين بالسجل</th>
                   <th className="px-4 text-center">الذكور</th>
                   <th className="px-4 text-center">الإناث</th>
                   <th className="px-4 text-center">المستمرون بالدوام</th>
@@ -686,55 +763,55 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container font-mono">
-                <tr>
-                  <td className="px-4 py-3 font-sans font-bold text-on-surface">الإعدادية</td>
-                  <td className="px-4 py-3 font-sans font-semibold text-primary">الخامس العلمي (أ)</td>
-                  <td className="px-4 py-3 text-center font-bold">38</td>
-                  <td className="px-4 py-3 text-center">38</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center text-[#2E7D32] font-bold">37</td>
-                  <td className="px-4 py-3 text-center">1</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-sans font-bold text-on-surface">الإعدادية</td>
-                  <td className="px-4 py-3 font-sans font-semibold text-primary">الخامس العلمي (ب)</td>
-                  <td className="px-4 py-3 text-center font-bold">36</td>
-                  <td className="px-4 py-3 text-center">36</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center text-[#2E7D32] font-bold">36</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-sans font-bold text-on-surface">الإعدادية</td>
-                  <td className="px-4 py-3 font-sans font-semibold text-primary">السادس العلمي (أ)</td>
-                  <td className="px-4 py-3 text-center font-bold">42</td>
-                  <td className="px-4 py-3 text-center">42</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center text-[#2E7D32] font-bold">42</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-sans font-bold text-on-surface">الإعدادية</td>
-                  <td className="px-4 py-3 font-sans font-semibold text-primary">الرابع العلمي (أ)</td>
-                  <td className="px-4 py-3 text-center font-bold">35</td>
-                  <td className="px-4 py-3 text-center">35</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center text-[#2E7D32] font-bold">35</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                </tr>
-                <tr className="bg-surface-container-high/40 font-bold">
-                  <td colSpan={2} className="px-4 py-3 font-sans text-primary">المجموع الكلي المعتمد</td>
-                  <td className="px-4 py-3 text-center text-primary text-sm">151</td>
-                  <td className="px-4 py-3 text-center">151</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                  <td className="px-4 py-3 text-center text-[#2E7D32] text-sm">150</td>
-                  <td className="px-4 py-3 text-center">1</td>
-                  <td className="px-4 py-3 text-center">0</td>
-                </tr>
+                {censusRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 text-center text-on-surface-variant font-medium font-sans">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <span className="material-symbols-outlined text-[36px] text-outline">demography</span>
+                        <span className="text-sm font-bold text-primary">لا تتوفر بيانات إحصائية سنوية حالياً</span>
+                        <span className="text-xs text-on-surface-variant">
+                          يتم احتساب وتجميع الإحصاء السنوي آلياً فور تسجيل بيانات الطلبة داخل السجل الموحد.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {censusRows.map((r, idx) => (
+                      <tr key={idx} className="hover:bg-surface-container-low transition-colors">
+                        <td className="px-4 py-3 font-sans font-bold text-on-surface">{r.stage}</td>
+                        <td className="px-4 py-3 font-sans font-semibold text-primary">{r.gradeClass}</td>
+                        <td className="px-4 py-3 text-center font-bold">{r.total}</td>
+                        <td className="px-4 py-3 text-center">{r.males}</td>
+                        <td className="px-4 py-3 text-center">{r.females}</td>
+                        <td className="px-4 py-3 text-center text-[#2E7D32] font-bold">{r.active}</td>
+                        <td className="px-4 py-3 text-center">{r.transferred}</td>
+                        <td className="px-4 py-3 text-center">{r.absent}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-surface-container-high/40 font-bold">
+                      <td colSpan={2} className="px-4 py-3 font-sans text-primary">المجموع الكلي المعتمد</td>
+                      <td className="px-4 py-3 text-center text-primary text-sm">
+                        {censusRows.reduce((a, b) => a + b.total, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {censusRows.reduce((a, b) => a + b.males, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {censusRows.reduce((a, b) => a + b.females, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-center text-[#2E7D32] text-sm">
+                        {censusRows.reduce((a, b) => a + b.active, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {censusRows.reduce((a, b) => a + b.transferred, 0)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {censusRows.reduce((a, b) => a + b.absent, 0)}
+                      </td>
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           </div>
@@ -756,19 +833,29 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-surface-container-low rounded-xl">
-              <span className="text-xs text-on-surface-variant font-bold block">معدل الحضور اليومي</span>
-              <span className="text-2xl font-black text-[#2E7D32] mt-1 block">96.4%</span>
-              <span className="text-[11px] text-secondary">حالة انضباط ممتازة</span>
+              <span className="text-xs text-on-surface-variant font-bold block">معدل الحضور والالتزام</span>
+              <span className="text-2xl font-black text-[#2E7D32] mt-1 block">
+                {students.length > 0
+                  ? `${Math.round(
+                      (students.filter((s) => s.statusType === "active").length /
+                        students.length) *
+                        100
+                    )}%`
+                  : "0%"}
+              </span>
+              <span className="text-[11px] text-secondary">
+                {students.length > 0 ? "محتسب من سجل الطلبة" : "بانتظار تسجيل الطلبة"}
+              </span>
             </div>
             <div className="p-4 bg-surface-container-low rounded-xl">
               <span className="text-xs text-on-surface-variant font-bold block">عدد الإنذارات الموجهة</span>
-              <span className="text-2xl font-black text-[#F57F17] mt-1 block">3 إنذارات</span>
-              <span className="text-[11px] text-on-surface-variant">تم تسليمها لأولياء الأمور</span>
+              <span className="text-2xl font-black text-[#F57F17] mt-1 block">0 إنذارات</span>
+              <span className="text-[11px] text-on-surface-variant">لا توجد إنذارات صادرة حالياً</span>
             </div>
             <div className="p-4 bg-surface-container-low rounded-xl">
               <span className="text-xs text-on-surface-variant font-bold block">الطلبة المهددون بالفصل</span>
-              <span className="text-2xl font-black text-error mt-1 block">1 طالب</span>
-              <span className="text-[11px] text-error font-semibold">تجاوز 5 أيام غياب غير مبرر</span>
+              <span className="text-2xl font-black text-primary mt-1 block">0 طالب</span>
+              <span className="text-[11px] text-on-surface-variant">لا توجد حالات تجاوز لحد الغياب</span>
             </div>
           </div>
         </div>
@@ -789,19 +876,27 @@ export const DetailedReportsView: React.FC<DetailedReportsViewProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-surface-container-low rounded-xl">
-              <span className="text-xs text-on-surface-variant font-bold block">إجمالي المقبوضات</span>
-              <span className="text-2xl font-black text-primary mt-1 block">18,500,000 د.ع</span>
-              <span className="text-[11px] text-secondary">وصولات رسمية مقيدة</span>
+              <span className="text-xs text-on-surface-variant font-bold block">إجمالي المقبوضات المقيدة</span>
+              <span className="text-2xl font-black text-primary mt-1 block">
+                {financeReceiptsList.reduce((acc, r) => acc + (r.amount || 0), 0).toLocaleString()} د.ع
+              </span>
+              <span className="text-[11px] text-secondary">
+                {financeReceiptsList.length} وصل مالي مقيد في الصندوق
+              </span>
             </div>
             <div className="p-4 bg-surface-container-low rounded-xl">
-              <span className="text-xs text-on-surface-variant font-bold block">نسبة التحصيل المالي</span>
-              <span className="text-2xl font-black text-[#2E7D32] mt-1 block">88.5%</span>
-              <span className="text-[11px] text-on-surface-variant">مطابق لسجلات الصندوق</span>
+              <span className="text-xs text-on-surface-variant font-bold block">حالة الصندوق المالي</span>
+              <span className="text-2xl font-black text-[#2E7D32] mt-1 block">
+                {financeReceiptsList.length > 0 ? "نشط ومحدث" : "0 د.ع"}
+              </span>
+              <span className="text-[11px] text-on-surface-variant">
+                {financeReceiptsList.length > 0 ? "مطابق لوصولات القبض" : "لا توجد وصولات مقبوضات مقيدة"}
+              </span>
             </div>
             <div className="p-4 bg-surface-container-low rounded-xl">
-              <span className="text-xs text-on-surface-variant font-bold block">المتبقي من الرسوم</span>
-              <span className="text-2xl font-black text-error mt-1 block">2,400,000 د.ع</span>
-              <span className="text-[11px] text-on-surface-variant">أقساط ورسوم مؤجلة</span>
+              <span className="text-xs text-on-surface-variant font-bold block">الرسوم غير المستلمة</span>
+              <span className="text-2xl font-black text-primary mt-1 block">0 د.ع</span>
+              <span className="text-[11px] text-on-surface-variant">لا توجد مستحقات معلقة حالياً</span>
             </div>
           </div>
         </div>

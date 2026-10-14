@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   ClassWeeklySchedule,
-  INITIAL_STAFF_MEMBERS,
-  INITIAL_WEEKLY_SCHEDULES,
   PeriodSlot,
   PERIOD_TIMES,
   ScheduleDay,
@@ -12,6 +10,11 @@ import {
   SUBJECTS_BY_STAGE,
 } from "../data/mockData";
 import { UserRole } from "./LoginView";
+import {
+  subscribeToSchedules,
+  saveScheduleDb,
+  subscribeToStaff,
+} from "../firebase/firestoreService";
 
 interface WeeklyScheduleViewProps {
   onNotify: (msg: string) => void;
@@ -30,40 +33,29 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
   currentTeacherName = "أ. حامد جاسم الشمري",
   teacherSubject = "الرياضيات (Mathematics)",
 }) => {
-  // Load schedules from localStorage or fallback
-  const [schedules, setSchedules] = useState<ClassWeeklySchedule[]>(() => {
-    const saved = localStorage.getItem("school_weekly_schedules");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
+  const [schedules, setSchedules] = useState<ClassWeeklySchedule[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+
+  // Realtime Firestore synchronization across all devices
+  useEffect(() => {
+    const unsubSched = subscribeToSchedules((data) => {
+      setSchedules(data || []);
+    });
+    const unsubStaff = subscribeToStaff((data) => {
+      setStaffList(data || []);
+    });
+    return () => {
+      unsubSched();
+      unsubStaff();
+    };
+  }, []);
 
   const saveSchedules = (updated: ClassWeeklySchedule[]) => {
     setSchedules(updated);
-    try {
-      localStorage.setItem("school_weekly_schedules", JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
+    for (const s of updated) {
+      saveScheduleDb(s).catch(console.error);
     }
   };
-
-  // Staff members (for teacher dropdown in editor)
-  const staffList: StaffMember[] = useMemo(() => {
-    const saved = localStorage.getItem("school_staff_registry");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return INITIAL_STAFF_MEMBERS;
-      }
-    }
-    return INITIAL_STAFF_MEMBERS;
-  }, []);
 
   const teachersOnly = useMemo(() => {
     return staffList.filter((m) => m.category === "teacher");
@@ -274,11 +266,11 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
     setEditingSlot(null);
   };
 
-  // Reset to default template
+  // Reset/Clear schedule
   const handleResetSchedule = () => {
-    if (window.confirm("هل أنت متأكد من استعادة الجدول الأسبوعي الافتراضي لكافة الصفوف؟")) {
-      saveSchedules(INITIAL_WEEKLY_SCHEDULES);
-      onNotify("تمت استعادة الجدول الأسبوعي المعتمد بنجاح");
+    if (window.confirm("هل أنت متأكد من مسح وإعادة تعيين الحصص للجدول الأسبوعي؟")) {
+      saveSchedules([]);
+      onNotify("تم تفريغ وإعادة ضبط الجدول الأسبوعي بنجاح");
     }
   };
 
