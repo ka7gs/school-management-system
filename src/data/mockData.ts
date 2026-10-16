@@ -405,7 +405,7 @@ export interface UserAccount {
 export const INITIAL_USER_ACCOUNTS: UserAccount[] = [
   {
     id: "usr-1",
-    fullName: "أ.د. حسام عبد الرضا الربيعي",
+    fullName: "كاظم ناجي مطشر",
     username: "principal",
     email: "principal@moedu.iq",
     password: "123",
@@ -413,8 +413,8 @@ export const INITIAL_USER_ACCOUNTS: UserAccount[] = [
     roleTitle: "مدير المدرسة (تحكم كامل)",
     employeeId: "EMP-2024-001",
     phoneNumber: "+964 770 123 4567",
-    directorate: "بغداد / الكرخ الأولى",
-    schoolName: "ثانوية المتميزين للبنين",
+    directorate: "ذي قار",
+    schoolName: "مدرسة الميامين",
     isActive: true,
     createdAt: "2024/09/01",
   },
@@ -464,20 +464,20 @@ export const PRESET_SCHOOL_LOGOS = [
 ];
 
 export const DEFAULT_SCHOOL_CONFIG: SchoolConfig = {
-  schoolName: "ثانوية المتميزين للبنين",
+  schoolName: "مدرسة الميامين",
   schoolLogoUrl:
     "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80",
-  directorate: "المديرية العامة لتربية بغداد / الكرخ الأولى",
+  directorate: "المديرية العامة لتربية ذي قار",
   ministryLogoUrl: MINISTRY_LOGO_URL,
-  governorate: "بغداد",
-  principalName: "أ.د. حسام عبد الرضا الربيعي",
+  governorate: "ذي قار",
+  principalName: "كاظم ناجي مطشر",
   vicePrincipalName: "أ. مازن طارق الكرخي",
-  examCommitteeHead: "أ.د. حسام عبد الرضا",
+  examCommitteeHead: "كاظم ناجي مطشر",
   academicYear: "2024 - 2025",
   schoolCode: "IQ-EDU-10492",
   phone: "+964 770 123 4567",
-  email: "info.mutamayizeen@moedu.iq",
-  address: "بغداد - الكرخ - حي الجامعة - قرب ساحة اللقاء",
+  email: "info.mayameen@moedu.iq",
+  address: "العراق - ذي قار - الناصرية",
 };
 
 // ==========================================

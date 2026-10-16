@@ -78,66 +78,84 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="flex flex-col w-full gap-space-lg">
-      {/* Top Welcome & Ministry Status Bar */}
-      <section className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
-        <div className="flex flex-col gap-space-xs">
-          <div className="flex items-center gap-space-sm flex-wrap">
-            <span className="inline-flex items-center gap-1 px-space-sm py-0.5 rounded bg-primary text-on-primary font-label-sm text-label-sm">
+      {/* Top Welcome & Institutional Authority Bar */}
+      <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-surface-container-high/60 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="flex flex-col gap-2.5">
+          {/* Ministry Badge & Date */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary text-on-primary text-xs font-bold tracking-wide shadow-2xs">
               <span className="material-symbols-outlined text-[16px]">
                 account_balance
               </span>
-              وزارة التربية العراقية
+              جمهورية العراق - وزارة التربية
             </span>
-            <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+            <span className="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
               <span className="material-symbols-outlined text-[16px] text-outline">
                 calendar_today
               </span>
               الأحد، 15 تشرين الأول 2024 | 11 ربيع الثاني 1446 هـ
             </span>
           </div>
-          <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight">
-            مرحباً بك، {schoolConfig?.principalName || "أ. حسام عبد الرضا"}{" "}
-            <span className="font-headline-sm text-headline-sm text-on-surface-variant font-normal">
-              (مدير المدرسة)
-            </span>
-          </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant">
-            {schoolConfig?.schoolName || "ثانوية المتميزين للبنين"} - {schoolConfig?.directorate || "مديرية تربية بغداد / الكرخ الأولى"} • السجل الإداري المركزي المباشر
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-space-sm">
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs shadow-sm transition-all cursor-pointer"
-              title="لوحة تحكم إعدادات المدرسة، الشعار، والمديرية"
-            >
-              <span className="material-symbols-outlined text-[18px]">tune</span>
-              <span>تعديل تفاصيل المدرسة والشعار</span>
-            </button>
-          )}
-          <div className="flex items-center gap-space-xs bg-surface-container-high px-space-md py-space-xs rounded-lg">
-            <span className="w-2.5 h-2.5 rounded-full bg-secondary"></span>
-            <div className="flex flex-col">
-              <span className="font-label-sm text-label-sm text-on-surface-variant">
-                حالة المزامنة الوزارية
+
+          {/* School Name & Directorate with High Typographic Prominence */}
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-3 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[28px]">
+                school
               </span>
-              <span className="font-label-md text-label-md text-primary font-bold">
-                متصل بالخادم المركزي (مباشر)
+              <h1 className="text-2xl sm:text-3xl font-black text-primary tracking-tight">
+                {schoolConfig?.schoolName || "مدرسة الميامين"}
+              </h1>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-on-surface-variant bg-surface-container px-2.5 py-0.5 rounded-lg w-fit">
+              {schoolConfig?.directorate || "المديرية العامة لتربية ذي قار"}
+            </span>
+          </div>
+
+          {/* Principal Greeting & Administrative Subtitle */}
+          <div className="flex items-center gap-2 flex-wrap text-sm text-on-surface-variant">
+            <span>مرحباً بك،</span>
+            <span className="text-primary font-black text-base">
+              {schoolConfig?.principalName || "مدير المدرسة"}
+            </span>
+            <span className="text-xs font-bold text-secondary bg-secondary-container/50 px-2 py-0.5 rounded-md">
+              مدير المدرسة (تحكم كامل)
+            </span>
+            <span className="text-outline hidden sm:inline">•</span>
+            <span className="text-xs text-on-surface-variant hidden sm:inline">
+              السجل الإداري المركزي المباشر
+            </span>
+            {schoolConfig?.schoolCode && (
+              <>
+                <span className="text-outline hidden md:inline">•</span>
+                <span className="text-xs text-on-surface-variant hidden md:inline">
+                  الرمز الوزاري:{" "}
+                  <strong className="font-mono text-primary font-bold">
+                    {schoolConfig.schoolCode}
+                  </strong>
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Executive Academic Year Card */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3.5 bg-primary text-on-primary px-5 py-3 rounded-xl shadow-xs border border-primary/20">
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-secondary-fixed">
+              <span className="material-symbols-outlined text-[24px]">
+                calendar_month
               </span>
             </div>
-          </div>
-          <div className="flex items-center gap-space-xs bg-primary-container px-space-md py-space-xs rounded-lg">
-            <span className="material-symbols-outlined text-secondary-fixed text-[20px]">
-              school
-            </span>
             <div className="flex flex-col">
-              <span className="font-label-sm text-label-sm text-on-primary-container">
-                العام الدراسي الحالي
+              <span className="text-[11px] text-white/70 font-medium">
+                العام الدراسي المعتمد
               </span>
-              <span className="font-label-md text-label-md text-on-primary font-bold">
-                {schoolConfig?.academicYear || "2024 - 2025"} (الفصل الأول)
+              <span className="text-base font-bold text-white tracking-wide">
+                {schoolConfig?.academicYear || "2024 - 2025"}{" "}
+                <span className="text-xs font-normal text-white/80 mr-1">
+                  (الفصل الأول)
+                </span>
               </span>
             </div>
           </div>

@@ -435,7 +435,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                     type="text"
                     value={formData.principalName}
                     onChange={(e) => handleInputChange("principalName", e.target.value)}
-                    placeholder="مثال: أ.د. حسام عبد الرضا الربيعي"
+                    placeholder="مثال: الأستاذ كاظم ناجي مطشر"
                     className="w-full h-11 px-3.5 bg-surface-container-low rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary"
                   />
                 </div>
@@ -461,7 +461,7 @@ export const SchoolSettingsModal: React.FC<SchoolSettingsModalProps> = ({
                     type="text"
                     value={formData.examCommitteeHead}
                     onChange={(e) => handleInputChange("examCommitteeHead", e.target.value)}
-                    placeholder="مثال: أ.د. حسام عبد الرضا"
+                    placeholder="مثال: الأستاذ كاظم ناجي مطشر"
                     className="w-full h-11 px-3.5 bg-surface-container-low rounded-xl border border-surface-container-high text-sm font-semibold outline-none focus:border-primary"
                   />
                 </div>

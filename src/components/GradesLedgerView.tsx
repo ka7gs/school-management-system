@@ -1923,7 +1923,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                           <div>
                             <div>مدير المدرسة (المصادقة الرسمية)</div>
                             <div className="text-on-surface-variant font-normal mt-1">
-                              أ.د. حسام عبد الرضا
+                              {schoolConfig?.principalName || "مدير المدرسة"}
                             </div>
                           </div>
                         </>
@@ -1932,19 +1932,19 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                           <div>
                             <div>رئيس اللجنة الامتحانية والتدقيق</div>
                             <div className="text-on-surface-variant font-normal mt-1">
-                              أ. حامد جاسم الشمري
+                              {schoolConfig?.examCommitteeHead || schoolConfig?.principalName || "رئيس اللجنة الامتحانية"}
                             </div>
                           </div>
                           <div>
                             <div>المعاون العلمي ولجنة الامتحانات</div>
                             <div className="text-on-surface-variant font-normal mt-1">
-                              أ. مازن طارق الكرخي
+                              {schoolConfig?.vicePrincipalName || "المعاون العلمي"}
                             </div>
                           </div>
                           <div>
                             <div>مدير المدرسة (الختم والمصادقة الوزارية)</div>
                             <div className="text-on-surface-variant font-normal mt-1">
-                              أ.د. حسام عبد الرضا
+                              {schoolConfig?.principalName || "مدير المدرسة"}
                             </div>
                           </div>
                         </>
@@ -2169,7 +2169,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                 <div>
                   <div>مدير المدرسة والختم الرسمي</div>
                   <div className="text-on-surface-variant font-normal mt-1">
-                    أ.د. حسام عبد الرضا
+                    {schoolConfig?.principalName || "مدير المدرسة"}
                   </div>
                 </div>
               </div>

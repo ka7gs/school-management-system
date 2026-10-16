@@ -145,7 +145,7 @@ const ROLE_PROFILES: Record<
   }
 > = {
   principal: {
-    name: "أ.د. حسام عبد الرضا",
+    name: "كاظم ناجي مطشر",
     roleTitle: "مدير المدرسة (تحكم كامل)",
     defaultPath: "dashboard",
   },
@@ -173,7 +173,12 @@ export default function App() {
       const raw =
         localStorage.getItem("school_admin_session") ||
         sessionStorage.getItem("school_admin_session");
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.fullName === "string" && parsed.fullName.includes("حسام عبد الرضا")) {
+        parsed.fullName = "كاظم ناجي مطشر";
+      }
+      return parsed;
     } catch {
       return null;
     }
@@ -195,7 +200,7 @@ export default function App() {
   const [userAccounts, setUserAccounts] =
     useState<UserAccount[]>(INITIAL_USER_ACCOUNTS);
   const [currentUserName, setCurrentUserName] = useState<string>(
-    () => savedSession?.fullName || "أ.د. حسام عبد الرضا الربيعي"
+    () => savedSession?.fullName || "كاظم ناجي مطشر"
   );
   const [currentUserRoleTitle, setCurrentUserRoleTitle] = useState<string>(
     () => savedSession?.roleTitle || "مدير المدرسة (تحكم كامل)"
@@ -556,7 +561,10 @@ export default function App() {
 
   const currentProfile = {
     ...ROLE_PROFILES[userRole],
-    name: currentUserName,
+    name:
+      userRole === "principal"
+        ? (schoolConfig?.principalName || currentUserName || "كاظم ناجي مطشر")
+        : currentUserName,
     roleTitle: currentUserRoleTitle,
     teacherSubject: currentTeacherSubject,
   };
