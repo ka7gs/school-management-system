@@ -79,25 +79,6 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
     "نتائج امتحانات نصف السنة"
   );
 
-  // Auto-return listener: when system print window closes, automatically return to student ledger
-  useEffect(() => {
-    const handleAfterPrint = () => {
-      if (printSingleStudent) {
-        const studentName = printSingleStudent.studentName;
-        const examTypeLabel =
-          printExamType === "midterm"
-            ? "نصف السنة"
-            : printExamType === "final"
-            ? "نهاية السنة"
-            : "النتيجة الشاملة";
-        setPrintSingleStudent(null);
-        onNotify(`تمت طباعة نتيجة (${examTypeLabel}) للطالب (${studentName}) والرجوع تلقائياً للسجل`);
-      }
-    };
-    window.addEventListener("afterprint", handleAfterPrint);
-    return () => window.removeEventListener("afterprint", handleAfterPrint);
-  }, [printSingleStudent, printExamType, onNotify]);
-
   // Handler for printing single student with guaranteed auto-return
   const handlePrintStudentAndAutoReturn = (student: StudentMultiSubjectGrade) => {
     const examTypeLabel =
@@ -106,13 +87,16 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
         : printExamType === "final"
         ? "نهاية السنة"
         : "النتيجة الشاملة";
+    const originalTitle = document.title;
+    document.title = " ";
     window.print();
     // Fallback timer to guarantee auto-return if afterprint event is delayed
     setTimeout(() => {
+      document.title = originalTitle;
       setPrintSingleStudent(null);
       setSelectedStudentId(student.studentId);
       onNotify(`تمت طباعة نتيجة (${examTypeLabel}) للطالب (${student.studentName}) والرجوع تلقائياً`);
-    }, 350);
+    }, 450);
   };
 
   // Handler for printing current student and directly moving to next student in the class
@@ -126,8 +110,11 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
         : printExamType === "final"
         ? "نهاية السنة"
         : "النتيجة الشاملة";
+    const originalTitle = document.title;
+    document.title = " ";
     window.print();
     setTimeout(() => {
+      document.title = originalTitle;
       if (nextStudent) {
         setPrintSingleStudent(nextStudent);
         setSelectedStudentId(nextStudent.studentId);
@@ -138,7 +125,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
         setPrintSingleStudent(null);
         onNotify(`تمت طباعة آخر طالب في الصف والرجوع تلقائياً لسجل الدرجات`);
       }
-    }, 350);
+    }, 450);
   };
 
   // Modal for Class Master Results Sheet Print (استمارة 44)
@@ -226,6 +213,75 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
     const found = classStudents.find((s) => s.studentId === selectedStudentId);
     return found || classStudents[0];
   }, [classStudents, selectedStudentId]);
+
+  // Auto-return & title-suppression listener: when system print window closes, automatically restore title and return
+  useEffect(() => {
+    let originalTitle = document.title;
+    const handleBeforePrint = () => {
+      originalTitle = document.title;
+      document.title = " "; // Strip title so browser doesn't print system name in top header
+      if (!printSingleStudent && activeStudent && activeTab === "student_tables") {
+        setPrintSingleStudent(activeStudent);
+      }
+    };
+
+    const handleAfterPrint = () => {
+      document.title = originalTitle;
+      if (printSingleStudent) {
+        const studentName = printSingleStudent.studentName;
+        const examTypeLabel =
+          printExamType === "midterm"
+            ? "نصف السنة"
+            : printExamType === "final"
+            ? "نهاية السنة"
+            : "النتيجة الشاملة";
+        setPrintSingleStudent(null);
+        onNotify(`تمت طباعة نتيجة (${examTypeLabel}) للطالب (${studentName}) والرجوع تلقائياً للسجل`);
+      }
+    };
+
+    window.addEventListener("beforeprint", handleBeforePrint);
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", handleBeforePrint);
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, [printSingleStudent, printExamType, activeStudent, activeTab, onNotify]);
+
+  // Global Ctrl+P / Cmd+P listener: cleanly launch official certificate print
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        const originalTitle = document.title;
+        document.title = " ";
+        if (activeTab === "class_sheet") {
+          setShowClassPrintModal(true);
+          setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+              document.title = originalTitle;
+            }, 600);
+          }, 150);
+        } else if (activeStudent) {
+          setPrintSingleStudent(activeStudent);
+          setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+              document.title = originalTitle;
+            }, 600);
+          }, 150);
+        } else {
+          window.print();
+          setTimeout(() => {
+            document.title = originalTitle;
+          }, 600);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeTab, activeStudent]);
 
   // Class Summary Statistics
   const classStats = useMemo(() => {
@@ -552,6 +608,19 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
 
           {/* Action Hub Buttons */}
           <div className="flex items-center flex-wrap gap-2">
+            {/* Active Student Clean Print Button (Immediate Result Print) */}
+            {activeStudent && (
+              <button
+                type="button"
+                onClick={() => setPrintSingleStudent(activeStudent)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-label-md shadow-sm transition-all cursor-pointer border border-emerald-600"
+                title={`طباعة وثيقة النتيجة الرسمية للطالب: ${activeStudent.studentName} (A4)`}
+              >
+                <span className="material-symbols-outlined text-[19px]">print</span>
+                <span>طباعة نتيجة الطالب ({activeStudent.studentName.split(" ")[0]})</span>
+              </button>
+            )}
+
             {/* Whole Class Print Button */}
             <button
               type="button"
@@ -845,8 +914,21 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Student Actions: Print Midterm / Final, Excel, Save */}
+                    {/* Quick Student Actions: Print Midterm / Final / Comprehensive, Excel, Save */}
                     <div className="flex items-center flex-wrap gap-2">
+                      {/* Master Prominent Result Print Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrintSingleStudent(activeStudent);
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-label-sm font-bold shadow-sm transition-all cursor-pointer border border-emerald-600"
+                        title="فتح وثيقة النتيجة الرسمية وطباعتها مباشرة (A4)"
+                      >
+                        <span className="material-symbols-outlined text-[19px]">print</span>
+                        <span>طباعة النتيجة الرسمية (A4)</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -858,7 +940,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                         title="عرض وطباعة نتيجة امتحانات نصف السنة فقط لهذا الطالب"
                       >
                         <span className="material-symbols-outlined text-[18px]">menu_book</span>
-                        <span>طباعة نصف السنة (A4)</span>
+                        <span>طباعة نصف السنة</span>
                       </button>
 
                       <button
@@ -872,7 +954,21 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                         title="عرض وطباعة النتيجة النهائية فقط (نهاية السنة) لهذا الطالب"
                       >
                         <span className="material-symbols-outlined text-[18px]">school</span>
-                        <span>طباعة نهاية السنة (A4)</span>
+                        <span>طباعة نهاية السنة</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrintExamType("comprehensive");
+                          setCertificateTitle("نتائج الامتحانات (نصف السنة والنتائج النهائية)");
+                          setPrintSingleStudent(activeStudent);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-surface-container-high hover:bg-surface-container-highest text-primary rounded-lg text-label-sm font-bold shadow-sm transition-all cursor-pointer border border-primary/20"
+                        title="عرض وطباعة كشف الدرجات الشامل لكافة الفصول"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">table_chart</span>
+                        <span>طباعة شاملة</span>
                       </button>
 
                       <button
@@ -1299,7 +1395,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
 
                       {/* Quick Print Action per row */}
                       <td className="px-2 py-2 text-center no-print">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -1307,10 +1403,11 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                               setCertificateTitle("نتائج امتحانات نصف السنة");
                               setPrintSingleStudent(st);
                             }}
-                            className="px-2 py-1 bg-primary/10 hover:bg-primary hover:text-white text-primary text-[11px] font-bold rounded transition-colors cursor-pointer whitespace-nowrap"
-                            title="عرض وطباعة نتيجة نصف السنة فقط لهذا الطالب"
+                            className="px-2.5 py-1 bg-primary/10 hover:bg-primary hover:text-white text-primary text-[11px] font-bold rounded transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
+                            title="عرض وطباعة وثيقة نتيجة نصف السنة لهذا الطالب"
                           >
-                            نصف السنة
+                            <span className="material-symbols-outlined text-[13px]">print</span>
+                            <span>طباعة نصف السنة</span>
                           </button>
                           <button
                             type="button"
@@ -1319,10 +1416,11 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                               setCertificateTitle("النتائج النهائية (الدور الأول)");
                               setPrintSingleStudent(st);
                             }}
-                            className="px-2 py-1 bg-secondary/15 hover:bg-secondary hover:text-white text-secondary text-[11px] font-bold rounded transition-colors cursor-pointer whitespace-nowrap"
-                            title="عرض وطباعة النتيجة النهائية فقط (نهاية السنة) لهذا الطالب"
+                            className="px-2.5 py-1 bg-secondary/15 hover:bg-secondary hover:text-white text-secondary text-[11px] font-bold rounded transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
+                            title="عرض وطباعة وثيقة النتيجة النهائية لهذا الطالب"
                           >
-                            نهاية السنة
+                            <span className="material-symbols-outlined text-[13px]">print</span>
+                            <span>طباعة نهاية السنة</span>
                           </button>
                         </div>
                       </td>
@@ -1519,6 +1617,24 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                 </div>
               </div>
 
+              {/* Guidance Bar for Principal (Clean Print Tips - Hidden when printing) */}
+              <div className="no-print bg-emerald-50 border-b border-emerald-200 px-space-lg py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-900">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+                  <span>
+                    <strong>توجيه مهم للمدير (طباعة رسمية نظيفة خالية من الروابط):</strong> تم إعداد هذه الوثيقة تلقائياً بمقاس A4 رسمي بدون أي روابط أو تواريخ متصفح. إذا ظهر رابط الموقع أو اسم النظام، يرجى إزالة علامة الصح عن خيار <strong>(الرؤوس والتذييلات / Headers and footers)</strong> من إعدادات الطباعة.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handlePrintStudentAndAutoReturn(printSingleStudent)}
+                  className="px-3.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shrink-0 self-end sm:self-auto shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-[16px]">print</span>
+                  <span>طباعة الآن (Ctrl + P)</span>
+                </button>
+              </div>
+
               {/* Official Printable Certificate Body */}
               {(() => {
                 const midtermSummary = computeMidtermSummary(printSingleStudent);
@@ -1526,7 +1642,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                 const comprehensiveSummary = computeStudentSummary(printSingleStudent);
 
                 return (
-                  <div className="p-8 space-y-4 bg-white text-on-surface">
+                  <div className="official-print-document p-8 space-y-4 bg-white text-on-surface">
                     {/* Ministry Header */}
                     <div className="flex items-center justify-between border-b-2 border-primary pb-4">
                       <div className="text-right space-y-0.5 text-xs font-bold text-primary">
@@ -1976,7 +2092,12 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    const originalTitle = document.title;
+                    document.title = " ";
                     window.print();
+                    setTimeout(() => {
+                      document.title = originalTitle;
+                    }, 600);
                     onNotify(
                       `تم إرسال شيت نتائج الصف (${currentGradeLabel} - ${section}) للطباعة الرسمية`
                     );
@@ -1984,7 +2105,7 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
                   className="px-4 py-1.5 bg-secondary text-white font-bold rounded-lg text-label-sm flex items-center gap-1 cursor-pointer hover:bg-secondary/90"
                 >
                   <span className="material-symbols-outlined text-[18px]">print</span>
-                  <span>طباعة شيت الصف (A4 Landscape)</span>
+                  <span>طباعة شيت الصف (A4)</span>
                 </button>
                 <button
                   type="button"
@@ -2004,8 +2125,33 @@ export const GradesLedgerView: React.FC<GradesLedgerViewProps> = ({
               </div>
             </div>
 
+            {/* Guidance Bar for Principal (Clean Print Tips - Hidden when printing) */}
+            <div className="no-print bg-emerald-50 border-b border-emerald-200 px-space-lg py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-900">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-700 text-[20px] shrink-0">verified</span>
+                <span>
+                  <strong>توجيه مهم للمدير (طباعة رسمية نظيفة خالية من الروابط):</strong> تم إعداد هذا الشيت تلقائياً بمقاس A4 أفقي رسمي بدون أي روابط أو تواريخ متصفح. إذا ظهر رابط الموقع أو اسم النظام، يرجى إزالة علامة الصح عن خيار <strong>(الرؤوس والتذييلات / Headers and footers)</strong> من إعدادات الطباعة.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const originalTitle = document.title;
+                  document.title = " ";
+                  window.print();
+                  setTimeout(() => {
+                    document.title = originalTitle;
+                  }, 600);
+                }}
+                className="px-3.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shrink-0 self-end sm:self-auto shadow-2xs"
+              >
+                <span className="material-symbols-outlined text-[16px]">print</span>
+                <span>طباعة الآن (Ctrl + P)</span>
+              </button>
+            </div>
+
             {/* Official Printable Class Sheet Document */}
-            <div className="p-8 space-y-4 bg-white text-on-surface">
+            <div className="official-print-document p-8 space-y-4 bg-white text-on-surface">
               {/* MoE Official Header */}
               <div className="flex items-center justify-between border-b-2 border-primary pb-4">
                 <div className="text-right space-y-0.5 text-xs font-bold text-primary">

@@ -578,6 +578,16 @@ export default function App() {
     );
   }
 
+  const handleCleanPrint = () => {
+    const originalTitle = document.title;
+    document.title = " ";
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 700);
+    handleNotify("جاري تجهيز الطباعة الرسمية النظيفة (بدون روابط)");
+  };
+
   return (
     <div className="bg-background font-body-md text-body-md text-on-surface antialiased min-h-screen">
       {/* Top Fixed Ministry Header */}
@@ -679,18 +689,17 @@ export default function App() {
               </button>
             )}
 
+            {/* Prominent Official Print Button with Arabic Label */}
             <button
               type="button"
-              onClick={() => {
-                window.print();
-                handleNotify("جاري تحضير الصفحة للطباعة الرسمية");
-              }}
-              className="p-space-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded transition-colors cursor-pointer"
-              title="طباعة السجل"
+              onClick={handleCleanPrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white hover:bg-primary-container text-xs font-bold shadow-xs cursor-pointer transition-all"
+              title="طباعة النتيجة الرسمية أو الصفحة الحالية بدون روابط المتصفح (Ctrl + P)"
             >
-              <span className="material-symbols-outlined text-[20px]">
+              <span className="material-symbols-outlined text-[18px]">
                 print
               </span>
+              <span className="font-bold">طباعة</span>
             </button>
             <button
               type="button"

@@ -156,15 +156,81 @@
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+@page {
+  size: A4 portrait;
+  margin: 0mm !important;
+}
+
+@page landscape {
+  size: A4 landscape;
+  margin: 0mm !important;
+}
+
 @media print {
-  aside, header, footer, .no-print {
+  /* 1. Eliminate browser headers and footers (removes system URL, date, and page title) */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 11pt !important;
+  }
+
+  /* 2. Hide all system chrome, navigation, headers, sidebars, notifications, buttons, and form inputs */
+  aside,
+  header,
+  nav,
+  footer,
+  .no-print,
+  [role="navigation"],
+  [role="banner"],
+  button,
+  input,
+  select,
+  textarea {
     display: none !important;
   }
-  .pr-72 {
+
+  /* 3. Strip layout offsets and backdrop blurs */
+  .pr-72,
+  .lg\:pr-72,
+  .min-h-screen {
     padding-right: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
   }
+
   main {
-    padding-top: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* 4. Modal print reset: ensure modals fill the printable page cleanly */
+  .fixed.inset-0 {
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+  }
+
+  .official-print-document {
+    padding: 10mm 12mm !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  /* 5. Prevent awkward page breaks inside rows and signature sections */
+  table, tr, td, th, .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
+
 
